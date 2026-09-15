@@ -56,8 +56,17 @@ struct AddContactView: View {
                 )
             }
             .navigationTitle("New Contact")
-
+            .navigationBarTitleDisplayMode(.inline)
+            
             .toolbar {
+            
+                ToolbarItem(
+                    placement: .cancellationAction
+                ) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
 
                 ToolbarItem(
                     placement: .confirmationAction

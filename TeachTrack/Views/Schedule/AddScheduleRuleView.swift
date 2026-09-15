@@ -68,11 +68,18 @@ struct AddScheduleRuleView: View {
                     step: 15
                 )
             }
-            .navigationTitle(
-                "New Schedule"
-            )
-
+            .navigationTitle("New Schedule")
+            .navigationBarTitleDisplayMode(.inline)
+       
             .toolbar {
+            
+                ToolbarItem(
+                    placement: .cancellationAction
+                ) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
 
                 ToolbarItem(
                     placement: .confirmationAction
