@@ -28,6 +28,9 @@ struct GroupListView: View {
         }
     }
 
+    @State
+    private var groupToDelete: Group?
+    
     var body: some View {
         List {
             ForEach(groups, id: \.uuid) { group in
@@ -47,6 +50,15 @@ struct GroupListView: View {
                         .foregroundStyle(.secondary)
                     }
                 }
+                
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            groupToDelete = group
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                }
+                
             }
         }
         .navigationTitle(
@@ -66,5 +78,41 @@ struct GroupListView: View {
                 organization: organization
             )
         }
+        .confirmationDialog(
+            "Delete Group?",
+            isPresented: Binding(
+                get: {
+                    groupToDelete != nil
+                },
+                set: { isPresented in
+                    if !isPresented {
+                        groupToDelete = nil
+                    }
+                }
+            ),
+            presenting: groupToDelete
+        ) { group in
+            Button(
+                "Delete",
+                role: .destructive
+            ) {
+                group.isActive = false
+                try? context.save()
+                groupToDelete = nil
+                }
+                Button(
+                    "Cancel",
+                    role: .cancel
+                ) {
+                    groupToDelete = nil
+                    }
+                    } message: { group in
+                        Text(
+                            "Are you sure you want to delete \(group.name)?"
+                        )
+                    }
+
+        
+        
     }
 }

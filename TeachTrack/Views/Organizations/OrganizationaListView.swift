@@ -8,6 +8,9 @@ import SwiftUI
 import SwiftData
 
 struct OrganizationsListView: View {
+    
+    @Environment(\.modelContext)
+    private var context
 
     @Query(
         filter: #Predicate<Organization> {
@@ -19,6 +22,9 @@ struct OrganizationsListView: View {
 
     @State
     private var showAddOrganization = false
+    
+    @State
+    private var organizationToDelete: Organization?
 
     var body: some View {
 
@@ -48,6 +54,15 @@ struct OrganizationsListView: View {
                             )
                         }
                     }
+                    
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                organizationToDelete = organization
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                    }
+                    
                 }
             }
             .navigationTitle(
@@ -74,6 +89,41 @@ struct OrganizationsListView: View {
 
                 AddOrganizationView()
             }
+            
+            .confirmationDialog(
+                "Delete Organization?",
+                isPresented: Binding(
+                    get: {
+                    organizationToDelete != nil
+                    },
+                    set: { isPresented in
+                        if !isPresented {
+                        organizationToDelete = nil
+                        }
+                    }
+                ),
+                presenting: organizationToDelete
+            ) { organization in
+                Button(
+                    "Delete",
+                    role: .destructive
+                ) {
+                    organization.isActive = false
+                    try? context.save()
+                    organizationToDelete = nil
+                    }
+                    Button(
+                        "Cancel",
+                        role: .cancel
+                    ) {
+                        organizationToDelete = nil
+                        }
+                        } message: { organization in
+                            Text(
+                                "Are you sure you want to delete \(organization.name)?"
+                            )
+                        }
+ 
         }
     }
 }

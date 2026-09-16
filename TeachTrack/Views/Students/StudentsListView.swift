@@ -22,6 +22,9 @@ struct StudentsListView: View {
 
     @State
     private var showAddStudent = false
+    
+    @State
+    private var studentToDelete: Student?
 
     var body: some View {
 
@@ -44,6 +47,15 @@ struct StudentsListView: View {
                             }
                         }
                     }
+                    
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                student.isActive = false
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                    }
+                    
                 }
             }
             .navigationTitle("Students")
@@ -59,6 +71,42 @@ struct StudentsListView: View {
             ) {
                 AddStudentView()
             }
+            
+            .confirmationDialog(
+                "Delete Student?",
+                isPresented: Binding(
+                    get: {
+                        studentToDelete != nil
+                    },
+                    set: { isPresented in
+                        if !isPresented {
+                            studentToDelete = nil
+                        }
+                    }
+                ),
+                presenting: studentToDelete
+            ) { student in
+                Button(
+                    "Delete",
+                    role: .destructive
+                ) {
+                    student.isActive = false
+                    try? context.save()
+                    studentToDelete = nil
+                    }
+                    Button(
+                        "Cancel",
+                        role: .cancel
+                    ) {
+                        studentToDelete = nil
+                        }
+                        } message: { student in
+                            Text(
+                                "Are you sure you want to delete \(student.lastName)?"
+                            )
+                        }
+ 
+            
         }
     }
 }
