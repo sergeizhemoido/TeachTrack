@@ -1,15 +1,12 @@
-//
-//  LessonListView.swift
-//  TeachTrack
-//
-//  Created by Sergei Zhemoido on 6/10/26.
-//
 import SwiftUI
 import SwiftData
 
 struct LessonListView: View {
 
     let group: Group
+
+    @Environment(\.modelContext)
+    private var context
 
     @Query(
         sort: \Lesson.startDate,
@@ -19,6 +16,9 @@ struct LessonListView: View {
 
     @State
     private var showAddLesson = false
+
+    @State
+    private var lessonToCancel: Lesson?
 
     private var lessons: [Lesson] {
 
@@ -63,11 +63,27 @@ struct LessonListView: View {
                         .foregroundStyle(.secondary)
                     }
                 }
+                .swipeActions(
+                    edge: .trailing,
+                    allowsFullSwipe: false
+                ) {
+
+                    if lesson.status != .cancelled {
+
+                        Button {
+                            lessonToCancel = lesson
+                        } label: {
+                            Label(
+                                "Cancel",
+                                systemImage: "xmark.circle"
+                            )
+                        }
+                        .tint(.orange)
+                    }
+                }
             }
         }
-        .navigationTitle(
-            "Lessons"
-        )
+        .navigationTitle("Lessons")
         .toolbar {
 
             Button {
@@ -85,6 +101,46 @@ struct LessonListView: View {
 
             AddLessonView(
                 group: group
+            )
+        }
+        .confirmationDialog(
+            "Cancel Lesson?",
+            isPresented: Binding(
+                get: {
+                    lessonToCancel != nil
+                },
+                set: { isPresented in
+                    if !isPresented {
+                        lessonToCancel = nil
+                    }
+                }
+            ),
+            presenting: lessonToCancel
+        ) { lesson in
+
+            Button(
+                "Cancel Lesson",
+                role: .destructive
+            ) {
+
+                lesson.status = .cancelled
+                try? context.save()
+
+                lessonToCancel = nil
+            }
+
+            Button(
+                "Keep Lesson",
+                role: .cancel
+            ) {
+
+                lessonToCancel = nil
+            }
+
+        } message: { lesson in
+
+            Text(
+                "Are you sure you want to cancel this lesson?"
             )
         }
     }

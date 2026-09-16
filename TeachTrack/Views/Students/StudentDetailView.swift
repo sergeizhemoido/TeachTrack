@@ -1,15 +1,18 @@
-//
-//  StudentDetailView.swift
-//  TeachTrack
-//
-//  Created by Sergei Zhemoido on 6/9/26.
-//
 import SwiftUI
 import SwiftData
 
 struct StudentDetailView: View {
 
     let student: Student
+
+    @Environment(\.modelContext)
+    private var context
+
+    @State
+    private var showEditStudent = false
+
+    @State
+    private var showDeleteConfirmation = false
 
     var body: some View {
 
@@ -22,12 +25,10 @@ struct StudentDetailView: View {
                 )
 
                 if let phone = student.phone {
-
                     Text(phone)
                 }
 
                 if let email = student.email {
-
                     Text(email)
                 }
             }
@@ -35,7 +36,6 @@ struct StudentDetailView: View {
             Section("Contacts") {
 
                 NavigationLink {
-
                     ContactListView(
                         student: student
                     )
@@ -97,5 +97,50 @@ struct StudentDetailView: View {
         .navigationTitle(
             "\(student.firstName) \(student.lastName)"
         )
+        .toolbar {
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
+                Button("Edit") {
+                    showEditStudent = true
+                }
+            }
+
+            ToolbarItem(
+                placement: .bottomBar
+            ) {
+                Button(
+                    "Delete Student",
+                    role: .destructive
+                ) {
+                    showDeleteConfirmation = true
+                }
+            }
+        }
+        .sheet(isPresented: $showEditStudent) {
+            EditStudentView(student: student)
+        }
+        .confirmationDialog(
+            "Delete Student?",
+            isPresented: $showDeleteConfirmation
+        ) {
+            Button(
+                "Delete",
+                role: .destructive
+            ) {
+                student.isActive = false
+                try? context.save()
+            }
+
+            Button(
+                "Cancel",
+                role: .cancel
+            ) {
+            }
+        } message: {
+            Text(
+                "Are you sure you want to delete \(student.firstName) \(student.lastName)?"
+            )
+        }
     }
 }

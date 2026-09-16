@@ -1,9 +1,10 @@
 //
-//  GroupDetaiView.swift
+//  GroupDetailView.swift
 //  TeachTrack
 //
 //  Created by Sergei Zhemoido on 6/10/26.
 //
+
 import SwiftUI
 import SwiftData
 
@@ -11,11 +12,20 @@ struct GroupDetailView: View {
 
     let group: Group
 
+    @Environment(\.modelContext)
+    private var context
+
     @State
     private var showAddStudent = false
 
     @State
     private var showAddLesson = false
+
+    @State
+    private var showEditGroup = false
+
+    @State
+    private var showDeleteConfirmation = false
 
     @Query
     private var enrollments: [Enrollment]
@@ -46,32 +56,27 @@ struct GroupDetailView: View {
         List {
 
             Section("General") {
-                
+
                 Text(group.name)
-                
+
                 Text(
                     group.revenueModel.title
                 )
+
                 NavigationLink {
-                    
+
                     ScheduleRuleListView(
-                        
                         group: group
-                        
                     )
-                    
+
                 } label: {
-                    
+
                     Label(
-                        
                         "Schedule",
-                        
                         systemImage: "calendar"
-                        
                     )
-                    
                 }
-            
+
                 if let rate = group.ratePerStudent {
 
                     HStack {
@@ -179,42 +184,77 @@ struct GroupDetailView: View {
                 }
             }
         }
+
         .navigationTitle(
             group.name
         )
 
         .toolbar {
 
-            Menu {
+            ToolbarItemGroup(
+                placement: .topBarTrailing
+            ) {
 
-                Button {
+                Button("Edit") {
 
-                    showAddStudent = true
+                    showEditGroup = true
+                }
+
+                Menu {
+
+                    Button {
+
+                        showAddStudent = true
+
+                    } label: {
+
+                        Label(
+                            "Add Student",
+                            systemImage: "person.badge.plus"
+                        )
+                    }
+
+                    Button {
+
+                        showAddLesson = true
+
+                    } label: {
+
+                        Label(
+                            "Add Lesson",
+                            systemImage: "calendar.badge.plus"
+                        )
+                    }
 
                 } label: {
 
-                    Label(
-                        "Add Student",
-                        systemImage: "person.badge.plus"
+                    Image(
+                        systemName: "plus"
                     )
                 }
-
-                Button {
-
-                    showAddLesson = true
-
-                } label: {
-
-                    Label(
-                        "Add Lesson",
-                        systemImage: "calendar.badge.plus"
-                    )
-                }
-
-            } label: {
-
-                Image(systemName: "plus")
             }
+
+            ToolbarItem(
+                placement: .bottomBar
+            ) {
+
+                Button(
+                    "Delete Group",
+                    role: .destructive
+                ) {
+
+                    showDeleteConfirmation = true
+                }
+            }
+        }
+
+        .sheet(
+            isPresented: $showEditGroup
+        ) {
+
+            EditGroupView(
+                group: group
+            )
         }
 
         .sheet(
@@ -234,5 +274,34 @@ struct GroupDetailView: View {
                 group: group
             )
         }
+
+        .confirmationDialog(
+            "Delete Group?",
+            isPresented: $showDeleteConfirmation
+        ) {
+
+            Button(
+                "Delete",
+                role: .destructive
+            ) {
+
+                group.isActive = false
+
+                try? context.save()
+            }
+
+            Button(
+                "Cancel",
+                role: .cancel
+            ) {
+            }
+
+        } message: {
+
+            Text(
+                "Are you sure you want to delete \(group.name)?"
+            )
+        }
     }
 }
+

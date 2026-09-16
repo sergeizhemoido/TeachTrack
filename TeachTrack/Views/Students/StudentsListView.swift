@@ -50,7 +50,7 @@ struct StudentsListView: View {
                     
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
-                                student.isActive = false
+                                studentToDelete = student
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
