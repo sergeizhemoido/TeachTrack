@@ -19,9 +19,6 @@ struct GroupListView: View {
     )
     private var allGroups: [Group]
 
-    @State
-    private var showAddGroup = false
-
     private var groups: [Group] {
         allGroups.filter {
             $0.organization.uuid == organization.uuid
@@ -64,20 +61,6 @@ struct GroupListView: View {
         .navigationTitle(
             organization.name
         )
-        .toolbar {
-            Button {
-                showAddGroup = true
-            } label: {
-                Image(systemName: "plus")
-            }
-        }
-        .sheet(
-            isPresented: $showAddGroup
-        ) {
-            AddGroupView(
-                organization: organization
-            )
-        }
         .confirmationDialog(
             "Delete Group?",
             isPresented: Binding(

@@ -13,6 +13,9 @@ struct OrganizationDetailView: View {
 
     @State
     private var showDeleteConfirmation = false
+    
+    @State
+    private var showAddGroup = false
 
     var body: some View {
 
@@ -29,6 +32,11 @@ struct OrganizationDetailView: View {
             ) {
                 Button("Edit") {
                     showEditOrganization = true
+                }
+                Button {
+                    showAddGroup = true
+                } label: {
+                    Image(systemName: "plus")
                 }
             }
 
@@ -47,6 +55,13 @@ struct OrganizationDetailView: View {
             isPresented: $showEditOrganization
         ) {
             EditOrganizationView(
+                organization: organization
+            )
+        }
+        .sheet(
+            isPresented: $showAddGroup
+        ) {
+            AddGroupView(
                 organization: organization
             )
         }
