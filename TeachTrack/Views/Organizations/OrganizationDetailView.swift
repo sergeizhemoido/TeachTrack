@@ -74,6 +74,9 @@ struct OrganizationDetailView: View {
                 role: .destructive
             ) {
                 organization.isActive = false
+                for group in organization.groups {
+                    group.isActive = false
+                }
                 try? context.save()
             }
 

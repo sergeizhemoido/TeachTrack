@@ -1,35 +1,111 @@
-//
-//  ContactDetailView.swift
-//  TeachTrack
-//
-//  Created by Sergei Zhemoido on 6/11/26.
-//
 import SwiftUI
+import SwiftData
 
 struct ContactDetailView: View {
 
     let contact: Contact
 
+    @Environment(\.modelContext)
+    private var context
+
+    @Environment(\.dismiss)
+    private var dismiss
+
+    @State
+    private var showEditContact = false
+
+    @State
+    private var showDeleteConfirmation = false
+
     var body: some View {
 
         Form {
 
-            Text(contact.name)
+            Section("Contact") {
 
-            Text(contact.relationship)
+                Text(contact.name)
 
-            if let phone = contact.phone {
+                Text(contact.relationship)
 
-                Text(phone)
-            }
+                if let phone = contact.phone {
 
-            if let email = contact.email {
+                    Text(phone)
+                }
 
-                Text(email)
+                if let email = contact.email {
+
+                    Text(email)
+                }
+
+                if let notes = contact.notes {
+
+                    Text(notes)
+                }
             }
         }
         .navigationTitle(
             contact.name
         )
+        .toolbar {
+
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
+
+                Button("Edit") {
+                    showEditContact = true
+                }
+            }
+
+            ToolbarItem(
+                placement: .bottomBar
+            ) {
+
+                Button(
+                    "Delete Contact",
+                    role: .destructive
+                ) {
+
+                    showDeleteConfirmation = true
+                }
+            }
+        }
+        .sheet(
+            isPresented: $showEditContact
+        ) {
+
+            EditContactView(
+                contact: contact
+            )
+        }
+        .confirmationDialog(
+            "Delete Contact?",
+            isPresented: $showDeleteConfirmation
+        ) {
+
+            Button(
+                "Delete",
+                role: .destructive
+            ) {
+
+                context.delete(contact)
+
+                try? context.save()
+
+                dismiss()
+            }
+
+            Button(
+                "Cancel",
+                role: .cancel
+            ) {
+            }
+
+        } message: {
+
+            Text(
+                "Are you sure you want to delete \(contact.name)?"
+            )
+        }
     }
 }

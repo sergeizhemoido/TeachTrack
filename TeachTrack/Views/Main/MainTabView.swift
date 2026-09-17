@@ -13,12 +13,9 @@ struct MainTabView: View {
         TabView {
 
             NavigationStack {
-
                 OrganizationsListView()
-
             }
             .tabItem {
-
                 Label(
                     "Organizations",
                     systemImage: "building.2"
@@ -26,12 +23,9 @@ struct MainTabView: View {
             }
 
             NavigationStack {
-
                 StudentsListView()
-
             }
             .tabItem {
-
                 Label(
                     "Students",
                     systemImage: "person.3"
@@ -39,12 +33,19 @@ struct MainTabView: View {
             }
 
             NavigationStack {
-
-                FinanceDashboardView()
-
+                CalendarView()
             }
             .tabItem {
+                Label(
+                    "Calendar",
+                    systemImage: "calendar"
+                )
+            }
 
+            NavigationStack {
+                FinanceDashboardView()
+            }
+            .tabItem {
                 Label(
                     "Finance",
                     systemImage: "dollarsign.circle"
@@ -52,12 +53,9 @@ struct MainTabView: View {
             }
 
             NavigationStack {
-
                 ReportsView()
-
             }
             .tabItem {
-
                 Label(
                     "Reports",
                     systemImage: "chart.bar"
@@ -65,12 +63,9 @@ struct MainTabView: View {
             }
 
             NavigationStack {
-
                 SettingsView()
-
             }
             .tabItem {
-
                 Label(
                     "Settings",
                     systemImage: "gear"

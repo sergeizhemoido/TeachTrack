@@ -1,9 +1,3 @@
-//
-//  ContactListView.swift
-//  TeachTrack
-//
-//  Created by Sergei Zhemoido on 6/11/26.
-//
 import SwiftUI
 import SwiftData
 
@@ -11,11 +5,17 @@ struct ContactListView: View {
 
     let student: Student
 
+    @Environment(\.modelContext)
+    private var context
+
     @Query
     private var contacts: [Contact]
 
     @State
     private var showAddContact = false
+
+    @State
+    private var contactToDelete: Contact?
 
     private var studentContacts: [Contact] {
 
@@ -45,11 +45,28 @@ struct ContactListView: View {
                         contact.name
                     )
                 }
+                .swipeActions(
+                    edge: .trailing,
+                    allowsFullSwipe: false
+                ) {
+
+                    Button(
+                        role: .destructive
+                    ) {
+
+                        contactToDelete = contact
+
+                    } label: {
+
+                        Label(
+                            "Delete",
+                            systemImage: "trash"
+                        )
+                    }
+                }
             }
         }
-        .navigationTitle(
-            "Contacts"
-        )
+        .navigationTitle("Contacts")
         .toolbar {
 
             Button {
@@ -67,6 +84,48 @@ struct ContactListView: View {
 
             AddContactView(
                 student: student
+            )
+        }
+        .confirmationDialog(
+            "Delete Contact?",
+            isPresented: Binding(
+                get: {
+                    contactToDelete != nil
+                },
+                set: { isPresented in
+
+                    if !isPresented {
+                        contactToDelete = nil
+                    }
+                }
+            ),
+            presenting: contactToDelete
+        ) { contact in
+
+            Button(
+                "Delete",
+                role: .destructive
+            ) {
+
+                context.delete(contact)
+
+                try? context.save()
+
+                contactToDelete = nil
+            }
+
+            Button(
+                "Cancel",
+                role: .cancel
+            ) {
+
+                contactToDelete = nil
+            }
+
+        } message: { contact in
+
+            Text(
+                "Are you sure you want to delete \(contact.name)?"
             )
         }
     }

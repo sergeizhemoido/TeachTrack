@@ -7,7 +7,7 @@
 import SwiftUI
 import SwiftData
 
-struct CalendarView: View {
+struct _CalendarView: View {
 
     @Query(sort: \Lesson.startDate)
     private var lessons: [Lesson]
