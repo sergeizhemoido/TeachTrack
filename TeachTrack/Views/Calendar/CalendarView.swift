@@ -10,22 +10,36 @@ import SwiftData
 
 struct CalendarView: View {
 
-    @Query(sort: \Lesson.startDate)
+    @Environment(\.modelContext)
+    private var context
+
+    @Query(
+        sort: \Lesson.startDate
+    )
     private var lessons: [Lesson]
 
-    @State private var selectedDate = Date()
-    @State private var displayedMonth = Date()
-    @State private var showAddLesson = false
+    @State
+    private var selectedDate = Date()
+
+    @State
+    private var displayedMonth = Date()
+
+    @State
+    private var showAddLesson = false
 
     private let calendar = Calendar.current
 
     private var monthTitle: String {
+
         displayedMonth.formatted(
-            .dateTime.month(.wide).year()
+            .dateTime
+                .month(.wide)
+                .year()
         )
     }
 
     private var days: [Date?] {
+
         guard let interval = calendar.dateInterval(
             of: .month,
             for: displayedMonth
@@ -34,28 +48,33 @@ struct CalendarView: View {
         }
 
         let firstDay = interval.start
-        let numberOfDays = calendar.range(
+
+        guard let range = calendar.range(
             of: .day,
             in: .month,
             for: firstDay
-        )!.count
+        ) else {
+            return []
+        }
 
         let weekday = calendar.component(
             .weekday,
             from: firstDay
         )
 
-        let leadingEmptyDays = weekday - calendar.firstWeekday
-        let adjustedLeadingDays =
-            (leadingEmptyDays + 7) % 7
+        let leadingEmptyDays =
+            (weekday - calendar.firstWeekday + 7) % 7
 
-        var result: [Date?] =
-            Array(repeating: nil, count: adjustedLeadingDays)
+        var result: [Date?] = Array(
+            repeating: nil,
+            count: leadingEmptyDays
+        )
 
-        for day in 0..<numberOfDays {
+        for day in range {
+
             if let date = calendar.date(
                 byAdding: .day,
-                value: day,
+                value: day - 1,
                 to: firstDay
             ) {
                 result.append(date)
@@ -69,8 +88,12 @@ struct CalendarView: View {
         return result
     }
 
-    private func lessons(on date: Date) -> [Lesson] {
+    private func lessons(
+        on date: Date
+    ) -> [Lesson] {
+
         lessons.filter {
+
             calendar.isDate(
                 $0.startDate,
                 inSameDayAs: date
@@ -79,19 +102,33 @@ struct CalendarView: View {
     }
 
     private var selectedDayLessons: [Lesson] {
-        lessons(on: selectedDate)
+
+        lessons(
+            on: selectedDate
+        )
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+
+        VStack(
+            spacing: 0
+        ) {
 
             // MARK: Month Header
 
             HStack {
+
                 Button {
-                    changeMonth(by: -1)
+
+                    changeMonth(
+                        by: -1
+                    )
+
                 } label: {
-                    Image(systemName: "chevron.left")
+
+                    Image(
+                        systemName: "chevron.left"
+                    )
                 }
 
                 Spacer()
@@ -102,118 +139,196 @@ struct CalendarView: View {
                 Spacer()
 
                 Button {
-                    changeMonth(by: 1)
+
+                    changeMonth(
+                        by: 1
+                    )
+
                 } label: {
-                    Image(systemName: "chevron.right")
+
+                    Image(
+                        systemName: "chevron.right"
+                    )
                 }
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
 
+
             // MARK: Weekday Header
 
-            let weekdays = calendar.shortStandaloneWeekdaySymbols
+            let weekdays =
+                calendar.shortStandaloneWeekdaySymbols
 
-            HStack(spacing: 0) {
-                ForEach(0..<7, id: \.self) { index in
+            HStack(
+                spacing: 0
+            ) {
+
+                ForEach(
+                    0..<7,
+                    id: \.self
+                ) { index in
+
                     Text(
                         weekdays[
-                            (index + calendar.firstWeekday - 1) % 7
+                            (
+                                index +
+                                calendar.firstWeekday -
+                                1
+                            ) % 7
                         ]
                     )
                     .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(
+                        .secondary
+                    )
+                    .frame(
+                        maxWidth: .infinity
+                    )
                 }
             }
             .padding(.horizontal)
+
 
             // MARK: Month Grid
 
             LazyVGrid(
                 columns: Array(
-                    repeating: GridItem(.flexible()),
+                    repeating:
+                        GridItem(.flexible()),
                     count: 7
                 ),
                 spacing: 8
             ) {
+
                 ForEach(
-                    Array(days.enumerated()),
+                    Array(
+                        days.enumerated()
+                    ),
                     id: \.offset
                 ) { _, date in
 
                     if let date {
+
                         DayCell(
                             date: date,
-                            isSelected: calendar.isDate(
-                                date,
-                                inSameDayAs: selectedDate
-                            ),
-                            isToday: calendar.isDateInToday(date),
-                            lessonCount: lessons(on: date).count
+                            isSelected:
+                                calendar.isDate(
+                                    date,
+                                    inSameDayAs:
+                                        selectedDate
+                                ),
+                            isToday:
+                                calendar.isDateInToday(
+                                    date
+                                ),
+                            lessonCount:
+                                lessons(
+                                    on: date
+                                ).count
                         ) {
+
                             selectedDate = date
                         }
+
                     } else {
+
                         Color.clear
-                            .frame(height: 42)
+                            .frame(
+                                height: 42
+                            )
                     }
                 }
             }
             .padding(.horizontal)
             .padding(.top, 8)
 
+
             Divider()
                 .padding(.top, 8)
 
-            // MARK: Selected Day
+
+            // MARK: Selected Day Lessons
 
             List {
+
                 Section {
+
                     if selectedDayLessons.isEmpty {
+
                         Text("No Lessons")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(
+                                .secondary
+                            )
+
                     } else {
+
                         ForEach(
                             selectedDayLessons,
                             id: \.uuid
                         ) { lesson in
+
                             NavigationLink {
+
                                 LessonDetailView(
                                     lesson: lesson
                                 )
+
                             } label: {
+
                                 VStack(
-                                    alignment: .leading,
+                                    alignment:
+                                        .leading,
                                     spacing: 4
                                 ) {
+
                                     Text(
                                         lesson.startDate,
-                                        format: .dateTime
+                                        format:
+                                            .dateTime
                                             .hour()
                                             .minute()
                                     )
-                                    .font(.headline)
-
-                                    Text(lesson.group.name)
+                                    .font(
+                                        .headline
+                                    )
 
                                     Text(
-                                        lesson.group.organization.name
+                                        lesson.group.name
                                     )
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
 
-                                    Text(lesson.status.rawValue)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                    Text(
+                                        lesson.group
+                                            .organization
+                                            .name
+                                    )
+                                    .font(
+                                        .caption
+                                    )
+                                    .foregroundStyle(
+                                        .secondary
+                                    )
+
+                                    Text(
+                                        lesson.status.rawValue
+                                    )
+                                    .font(
+                                        .caption
+                                    )
+                                    .foregroundStyle(
+                                        .secondary
+                                    )
                                 }
                             }
                         }
                     }
+
                 } header: {
+
                     Text(
                         selectedDate,
-                        format: .dateTime
+                        format:
+                            .dateTime
                             .weekday(.wide)
                             .month(.wide)
                             .day()
@@ -223,32 +338,78 @@ struct CalendarView: View {
         }
         .navigationTitle("Calendar")
         .toolbar {
+
             ToolbarItem(
                 placement: .topBarTrailing
             ) {
+
                 Button {
+
                     showAddLesson = true
+
                 } label: {
-                    Image(systemName: "plus")
+
+                    Image(
+                        systemName: "plus"
+                    )
                 }
             }
         }
         .sheet(
-            isPresented: $showAddLesson
+            isPresented:
+                $showAddLesson
         ) {
+
             AddLessonFromCalendarView(
-                selectedDate: selectedDate
+                selectedDate:
+                    selectedDate
+            )
+        }
+        .onAppear {
+
+            LessonGenerator.generateForCalendar(
+                around: displayedMonth,
+                context: context
+            )
+        }
+        .onChange(
+            of: displayedMonth
+        ) {
+
+            LessonGenerator.generateForCalendar(
+                around: displayedMonth,
+                context: context
             )
         }
     }
 
-    private func changeMonth(by value: Int) {
-        if let newMonth = calendar.date(
-            byAdding: .month,
-            value: value,
-            to: displayedMonth
-        ) {
+    private func changeMonth(
+        by value: Int
+    ) {
+
+        if let newMonth =
+            calendar.date(
+                byAdding: .month,
+                value: value,
+                to: displayedMonth
+            ) {
+
             displayedMonth = newMonth
+
+            // If the selected day belongs to
+            // another month, select the first
+            // day of the newly displayed month.
+            if !calendar.isDate(
+                selectedDate,
+                equalTo: newMonth,
+                toGranularity: .month
+            ) {
+
+                selectedDate =
+                    calendar.startOfDay(
+                        for: newMonth
+                    )
+            }
         }
     }
 }
@@ -264,25 +425,40 @@ private struct DayCell: View {
     let lessonCount: Int
     let action: () -> Void
 
-    private let calendar = Calendar.current
-
     var body: some View {
-        Button(action: action) {
-            VStack(spacing: 2) {
+
+        Button(
+            action: action
+        ) {
+
+            VStack(
+                spacing: 2
+            ) {
 
                 Text(
                     date,
-                    format: .dateTime.day()
+                    format:
+                        .dateTime.day()
                 )
                 .font(.body)
-                .frame(width: 32, height: 28)
+                .frame(
+                    width: 32,
+                    height: 28
+                )
                 .background {
+
                     if isSelected {
+
                         Circle()
                             .fill(.tint)
+
                     } else if isToday {
+
                         Circle()
-                            .stroke(.tint, lineWidth: 1)
+                            .stroke(
+                                .tint,
+                                lineWidth: 1
+                            )
                     }
                 }
                 .foregroundStyle(
@@ -291,11 +467,18 @@ private struct DayCell: View {
                     : .primary
                 )
 
-                HStack(spacing: 2) {
+                HStack(
+                    spacing: 2
+                ) {
+
                     ForEach(
-                        0..<min(lessonCount, 3),
+                        0..<min(
+                            lessonCount,
+                            3
+                        ),
                         id: \.self
                     ) { _ in
+
                         Circle()
                             .fill(.tint)
                             .frame(
@@ -304,10 +487,16 @@ private struct DayCell: View {
                             )
                     }
                 }
-                .frame(height: 6)
+                .frame(
+                    height: 6
+                )
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 42)
+            .frame(
+                maxWidth: .infinity
+            )
+            .frame(
+                height: 42
+            )
         }
         .buttonStyle(.plain)
     }

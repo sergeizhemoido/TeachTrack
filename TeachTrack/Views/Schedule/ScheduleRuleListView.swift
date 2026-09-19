@@ -1,3 +1,10 @@
+//
+//  ScheduleRuleListView.swift
+//  TeachTrack
+//
+//  Created by Sergei Zhemoido on 9/17/26.
+//
+
 import SwiftUI
 import SwiftData
 
@@ -12,7 +19,7 @@ struct ScheduleRuleListView: View {
     private var allRules: [ScheduleRule]
 
     @State
-    private var showAddRule = false
+    private var showAddScheduleRule = false
 
     @State
     private var ruleToDelete: ScheduleRule?
@@ -26,14 +33,17 @@ struct ScheduleRuleListView: View {
             }
             .sorted {
                 if $0.weekday.rawValue != $1.weekday.rawValue {
-                    return $0.weekday.rawValue < $1.weekday.rawValue
+                    return $0.weekday.rawValue <
+                        $1.weekday.rawValue
                 }
 
                 if $0.startHour != $1.startHour {
-                    return $0.startHour < $1.startHour
+                    return $0.startHour <
+                        $1.startHour
                 }
 
-                return $0.startMinute < $1.startMinute
+                return $0.startMinute <
+                    $1.startMinute
             }
     }
 
@@ -47,15 +57,14 @@ struct ScheduleRuleListView: View {
             ) { rule in
 
                 NavigationLink {
-
                     EditScheduleRuleView(
                         rule: rule
                     )
-
                 } label: {
 
                     VStack(
-                        alignment: .leading
+                        alignment: .leading,
+                        spacing: 4
                     ) {
 
                         Text(
@@ -63,7 +72,17 @@ struct ScheduleRuleListView: View {
                         )
 
                         Text(
-                            "\(rule.startHour):\(String(format: "%02d", rule.startMinute))"
+                            String(
+                                format: "%02d:%02d",
+                                rule.startHour,
+                                rule.startMinute
+                            )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                        Text(
+                            "\(rule.durationMinutes) min"
                         )
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -74,9 +93,7 @@ struct ScheduleRuleListView: View {
                     allowsFullSwipe: false
                 ) {
 
-                    Button(
-                        role: .destructive
-                    ) {
+                    Button(role: .destructive) {
 
                         ruleToDelete = rule
 
@@ -93,17 +110,24 @@ struct ScheduleRuleListView: View {
         .navigationTitle("Schedule")
         .toolbar {
 
-            Button {
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
 
-                showAddRule = true
+                Button {
 
-            } label: {
+                    showAddScheduleRule = true
 
-                Image(systemName: "plus")
+                } label: {
+
+                    Image(
+                        systemName: "plus"
+                    )
+                }
             }
         }
         .sheet(
-            isPresented: $showAddRule
+            isPresented: $showAddScheduleRule
         ) {
 
             AddScheduleRuleView(
@@ -111,7 +135,7 @@ struct ScheduleRuleListView: View {
             )
         }
         .confirmationDialog(
-            "Delete Schedule Rule?",
+            "Delete Schedule?",
             isPresented: Binding(
                 get: {
                     ruleToDelete != nil
@@ -131,6 +155,18 @@ struct ScheduleRuleListView: View {
                 role: .destructive
             ) {
 
+                let calendar = Calendar.current
+
+                let today = calendar.startOfDay(
+                    for: Date()
+                )
+
+                LessonGenerator.removeFutureLessons(
+                    for: rule,
+                    from: today,
+                    context: context
+                )
+
                 rule.isActive = false
 
                 try? context.save()
@@ -142,14 +178,13 @@ struct ScheduleRuleListView: View {
                 "Cancel",
                 role: .cancel
             ) {
-
                 ruleToDelete = nil
             }
 
         } message: { rule in
 
             Text(
-                "Are you sure you want to delete this schedule rule?"
+                "Delete the schedule for \(rule.weekday.title) at \(String(format: "%02d:%02d", rule.startHour, rule.startMinute))?"
             )
         }
     }

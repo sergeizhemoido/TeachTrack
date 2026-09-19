@@ -14,19 +14,14 @@ final class Lesson {
     var uuid: UUID
 
     var group: Group
-
     var startDate: Date
-
     var endDate: Date
-
     var status: LessonStatus
-
     var source: LessonSource
-
     var generatedFromRule: ScheduleRule?
-
+    var isManuallyModified: Bool
     var notes: String?
-    
+
     @Relationship(
         deleteRule: .cascade,
         inverse: \Attendance.lesson
@@ -51,5 +46,7 @@ final class Lesson {
         self.endDate = endDate
         self.status = .planned
         self.source = source
+        self.generatedFromRule = nil
+        self.isManuallyModified = false
     }
 }

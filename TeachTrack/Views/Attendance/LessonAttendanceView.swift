@@ -58,41 +58,4 @@ struct LessonAttendanceView: View {
 }
 
 
-#Preview {
-    let organization = Organization(
-        name: "Test School",
-        type: .school
-    )
 
-    let group = Group(
-        name: "Test Group",
-        revenueModel: .perStudent,
-        organization: organization
-    )
-
-    let lesson = Lesson(
-        group: group,
-        startDate: Date(),
-        endDate: Date(),
-        source: .manual
-    )
-
-    let student = Student(
-        firstName: "John",
-        lastName: "Smith"
-    )
-
-    LessonAttendanceView(
-        lesson: lesson
-    )
-    .modelContainer(
-        for: [
-            Organization.self,
-            Group.self,
-            Lesson.self,
-            Student.self,
-            Attendance.self
-        ],
-        inMemory: true
-    )
-}

@@ -109,9 +109,12 @@ struct EditLessonView: View {
                                 )
                             )
 
-                        lesson.status =
-                            status
-
+                        lesson.status = status
+                        
+                        if lesson.source == .generated {
+                            lesson.isManuallyModified = true
+                        }
+                        
                         try? context.save()
 
                         dismiss()
