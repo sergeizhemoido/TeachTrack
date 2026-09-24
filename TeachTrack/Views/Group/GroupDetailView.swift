@@ -30,12 +30,15 @@ struct GroupDetailView: View {
     @State
     private var enrollmentToRemove: Enrollment?
 
+    @State
+    private var lessonToDelete: Lesson?
+
     @Query
     private var enrollments: [Enrollment]
 
     @Query(
         sort: \Lesson.startDate,
-        order: .reverse
+        order: .forward
     )
     private var allLessons: [Lesson]
 
@@ -49,6 +52,7 @@ struct GroupDetailView: View {
                 $0.isActive
             }
             .sorted {
+
                 if $0.student.lastName != $1.student.lastName {
                     return $0.student.lastName < $1.student.lastName
                 }
@@ -57,13 +61,15 @@ struct GroupDetailView: View {
             }
     }
 
-    // MARK: - Lessons
+    // MARK: - Manual Lessons
 
     private var lessons: [Lesson] {
 
-        allLessons.filter {
-            $0.group.uuid == group.uuid
-        }
+        allLessons
+            .filter {
+                $0.group.uuid == group.uuid &&
+                $0.source != .generated
+            }
     }
 
     // MARK: - Body
@@ -226,6 +232,24 @@ struct GroupDetailView: View {
                                 .foregroundStyle(.secondary)
                             }
                         }
+
+                        .swipeActions(
+                            edge: .trailing,
+                            allowsFullSwipe: false
+                        ) {
+
+                            Button(role: .destructive) {
+
+                                lessonToDelete = lesson
+
+                            } label: {
+
+                                Label(
+                                    "Delete",
+                                    systemImage: "trash"
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -375,6 +399,51 @@ struct GroupDetailView: View {
             )
         }
 
+        // MARK: Delete Lesson
+
+        .confirmationDialog(
+            "Delete Lesson?",
+            isPresented: Binding(
+                get: {
+                    lessonToDelete != nil
+                },
+                set: { isPresented in
+
+                    if !isPresented {
+                        lessonToDelete = nil
+                    }
+                }
+            ),
+            presenting: lessonToDelete
+        ) { lesson in
+
+            Button(
+                "Delete Lesson",
+                role: .destructive
+            ) {
+
+                context.delete(lesson)
+
+                try? context.save()
+
+                lessonToDelete = nil
+            }
+
+            Button(
+                "Cancel",
+                role: .cancel
+            ) {
+
+                lessonToDelete = nil
+            }
+
+        } message: { lesson in
+
+            Text(
+                "Are you sure you want to delete this lesson?"
+            )
+        }
+
         // MARK: Delete Group
 
         .confirmationDialog(
@@ -416,4 +485,3 @@ struct GroupDetailView: View {
         }
     }
 }
-
