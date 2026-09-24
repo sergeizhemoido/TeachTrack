@@ -4,6 +4,7 @@
 //
 //  Created by Sergei Zhemoido on 9/17/26.
 //
+
 import Foundation
 import SwiftData
 
@@ -46,10 +47,28 @@ struct LessonGenerator {
 
             for rule in rules {
 
-                guard rule.group.isActive,
-                      rule.group.organization.isActive,
-                      weekday == rule.weekday.rawValue
-                else {
+                let group = rule.group
+
+                guard group.isActive else {
+                    continue
+                }
+
+                if let organization = group.organization,
+                   !organization.isActive {
+                    continue
+                }
+
+                guard weekday == rule.weekday.rawValue else {
+                    continue
+                }
+
+                // Do not generate a lesson if this date
+                // has been explicitly excluded from the rule.
+                if hasException(
+                    for: rule,
+                    on: date,
+                    context: context
+                ) {
                     continue
                 }
 
@@ -68,12 +87,13 @@ struct LessonGenerator {
                     continue
                 }
 
-                let lessonEnd = lessonStart.addingTimeInterval(
-                    Double(rule.durationMinutes * 60)
-                )
+                let lessonEnd =
+                    lessonStart.addingTimeInterval(
+                        Double(rule.durationMinutes * 60)
+                    )
 
                 let alreadyExists = lessonExists(
-                    group: rule.group,
+                    group: group,
                     startDate: lessonStart,
                     rule: rule,
                     context: context
@@ -82,7 +102,7 @@ struct LessonGenerator {
                 if !alreadyExists {
 
                     let lesson = Lesson(
-                        group: rule.group,
+                        group: group,
                         startDate: lessonStart,
                         endDate: lessonEnd,
                         source: .generated
@@ -118,6 +138,13 @@ struct LessonGenerator {
 
         let calendar = Calendar.current
 
+        // Start from today, not from the beginning
+        // of the current month.
+        let startDate = calendar.startOfDay(
+            for: Date()
+        )
+
+        // Beginning of the current month.
         guard let monthStart = calendar.date(
             from: calendar.dateComponents(
                 [.year, .month],
@@ -127,7 +154,8 @@ struct LessonGenerator {
             return
         }
 
-        // Current month + two following months.
+        // Three months from the beginning
+        // of the current month.
         guard let monthAfterNext = calendar.date(
             byAdding: .month,
             value: 3,
@@ -136,6 +164,7 @@ struct LessonGenerator {
             return
         }
 
+        // Last day of the third month.
         guard let endDate = calendar.date(
             byAdding: .day,
             value: -1,
@@ -145,14 +174,14 @@ struct LessonGenerator {
         }
 
         generateLessons(
-            from: monthStart,
+            from: startDate,
             through: endDate,
             context: context
         )
     }
 
 
-    // MARK: - Remove Future Generated Lessons
+    // MARK: - Remove Future Lessons
 
     static func removeFutureLessons(
         for rule: ScheduleRule,
@@ -187,6 +216,79 @@ struct LessonGenerator {
     }
 
 
+    // MARK: - Delete Generated Lesson Permanently
+
+    static func deleteGeneratedLesson(
+        _ lesson: Lesson,
+        context: ModelContext
+    ) {
+
+        guard lesson.source == .generated,
+              let rule = lesson.generatedFromRule
+        else {
+            context.delete(lesson)
+            try? context.save()
+            return
+        }
+
+        let calendar = Calendar.current
+
+        let exceptionDate = calendar.startOfDay(
+            for: lesson.startDate
+        )
+
+        // Check whether an exception already exists.
+        if !hasException(
+            for: rule,
+            on: exceptionDate,
+            context: context
+        ) {
+
+            let exception = ScheduleException(
+                rule: rule,
+                date: exceptionDate
+            )
+
+            context.insert(exception)
+        }
+
+        context.delete(lesson)
+
+        try? context.save()
+    }
+
+
+    // MARK: - Check Schedule Exception
+
+    private static func hasException(
+        for rule: ScheduleRule,
+        on date: Date,
+        context: ModelContext
+    ) -> Bool {
+
+        let calendar = Calendar.current
+
+        let targetDate = calendar.startOfDay(
+            for: date
+        )
+
+        let ruleID = rule.uuid
+
+        let descriptor = FetchDescriptor<ScheduleException>(
+            predicate: #Predicate<ScheduleException> {
+                $0.rule.uuid == ruleID &&
+                $0.date == targetDate &&
+                $0.isActive
+            }
+        )
+
+        let count =
+            (try? context.fetchCount(descriptor)) ?? 0
+
+        return count > 0
+    }
+
+
     // MARK: - Check Existing Lesson
 
     private static func lessonExists(
@@ -208,9 +310,8 @@ struct LessonGenerator {
             }
         )
 
-        let count = (
-            try? context.fetchCount(descriptor)
-        ) ?? 0
+        let count =
+            (try? context.fetchCount(descriptor)) ?? 0
 
         return count > 0
     }

@@ -9,6 +9,8 @@ import SwiftData
 
 struct AddOrganizationView: View {
 
+    let onSave: () -> Void
+
     @Environment(\.dismiss)
     private var dismiss
 
@@ -20,6 +22,9 @@ struct AddOrganizationView: View {
 
     @State
     private var type: OrganizationType = .school
+
+    @State
+    private var saveErrorMessage: String?
 
     var body: some View {
 
@@ -61,15 +66,7 @@ struct AddOrganizationView: View {
                     placement: .confirmationAction
                 ) {
                     Button("Save") {
-                        let organization = Organization(
-                            name: name,
-                            type: type
-                        )
-                        context.insert(
-                            organization
-                        )
-                        try? context.save()
-                        dismiss()
+                        saveOrganization()
                     }
                     .disabled(
                         name.trimmingCharacters(
@@ -78,6 +75,41 @@ struct AddOrganizationView: View {
                     )
                 }
             }
+        }
+        .alert(
+            "Unable to Save Organization",
+            isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        saveErrorMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                saveErrorMessage = nil
+            }
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
+    }
+
+    private func saveOrganization() {
+        let organization = Organization(
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            type: type
+        )
+
+        context.insert(organization)
+
+        do {
+            try context.save()
+            onSave()
+            dismiss()
+        } catch {
+            context.rollback()
+            saveErrorMessage = error.localizedDescription
         }
     }
 }

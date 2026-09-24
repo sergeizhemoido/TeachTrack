@@ -32,16 +32,21 @@ struct AddGroupView: View {
     var body: some View {
 
         NavigationStack {
+
             Form {
+
                 Section("Group") {
+
                     TextField(
                         "Group Name",
                         text: $name
                     )
+
                     Picker(
                         "Compensation",
                         selection: $revenueModel
                     ) {
+
                         ForEach(
                             RevenueModel.allCases,
                             id: \.self
@@ -52,8 +57,11 @@ struct AddGroupView: View {
                         }
                     }
                 }
+
                 if revenueModel == .perStudent {
+
                     Section("Rate") {
+
                         TextField(
                             "Rate Per Student",
                             text: $ratePerStudent
@@ -61,8 +69,11 @@ struct AddGroupView: View {
                         .keyboardType(.decimalPad)
                     }
                 }
+
                 if revenueModel == .fixedPerLesson {
+
                     Section("Rate") {
+
                         TextField(
                             "Fixed Lesson Rate",
                             text: $fixedLessonRate
@@ -71,39 +82,52 @@ struct AddGroupView: View {
                     }
                 }
             }
+
             .navigationTitle("New Group")
             .navigationBarTitleDisplayMode(.inline)
+
             .toolbar {
+
                 ToolbarItem(
                     placement: .cancellationAction
                 ) {
+
                     Button("Cancel") {
                         dismiss()
                     }
                 }
+
                 ToolbarItem(
                     placement: .confirmationAction
                 ) {
+
                     Button("Save") {
+
                         let group = Group(
                             name: name,
                             revenueModel: revenueModel,
                             organization: organization
                         )
+
                         if revenueModel == .perStudent {
+
                             group.ratePerStudent =
                                 Decimal(
                                     string: ratePerStudent
                                 )
-                        }
-                        if revenueModel == .fixedPerLesson {
+
+                        } else {
+
                             group.fixedLessonRate =
                                 Decimal(
                                     string: fixedLessonRate
                                 )
                         }
+
                         context.insert(group)
+
                         try? context.save()
+
                         dismiss()
                     }
                     .disabled(

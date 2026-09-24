@@ -14,25 +14,20 @@ final class Group {
     var uuid: UUID
 
     var name: String
-
     var revenueModel: RevenueModel
-
     var fixedLessonRate: Decimal?
-    
     var ratePerStudent: Decimal?
-
     var notes: String?
-
     var isActive: Bool
 
-    var organization: Organization
-    
+    var organization: Organization?
+
     @Relationship(
         deleteRule: .cascade,
         inverse: \Enrollment.group
     )
     var enrollments: [Enrollment] = []
-    
+
     @Relationship(
         deleteRule: .cascade,
         inverse: \Lesson.group
@@ -48,7 +43,7 @@ final class Group {
     init(
         name: String,
         revenueModel: RevenueModel,
-        organization: Organization
+        organization: Organization? = nil
     ) {
         self.uuid = UUID()
         self.name = name

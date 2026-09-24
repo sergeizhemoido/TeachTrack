@@ -32,6 +32,7 @@ struct ScheduleRuleListView: View {
                 $0.isActive
             }
             .sorted {
+
                 if $0.weekday.rawValue != $1.weekday.rawValue {
                     return $0.weekday.rawValue <
                         $1.weekday.rawValue
@@ -51,63 +52,83 @@ struct ScheduleRuleListView: View {
 
         List {
 
-            ForEach(
-                rules,
-                id: \.uuid
-            ) { rule in
+            if rules.isEmpty {
 
-                NavigationLink {
-                    EditScheduleRuleView(
-                        rule: rule
+                ContentUnavailableView(
+                    "No Schedule",
+                    systemImage: "calendar",
+                    description: Text(
+                        "Add a regular schedule for this group."
                     )
-                } label: {
+                )
 
-                    VStack(
-                        alignment: .leading,
-                        spacing: 4
-                    ) {
+            } else {
 
-                        Text(
-                            rule.weekday.title
+                ForEach(
+                    rules,
+                    id: \.uuid
+                ) { rule in
+
+                    NavigationLink {
+
+                        EditScheduleRuleView(
+                            rule: rule
                         )
-
-                        Text(
-                            String(
-                                format: "%02d:%02d",
-                                rule.startHour,
-                                rule.startMinute
-                            )
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                        Text(
-                            "\(rule.durationMinutes) min"
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-                }
-                .swipeActions(
-                    edge: .trailing,
-                    allowsFullSwipe: false
-                ) {
-
-                    Button(role: .destructive) {
-
-                        ruleToDelete = rule
 
                     } label: {
 
-                        Label(
-                            "Delete",
-                            systemImage: "trash"
-                        )
+                        VStack(
+                            alignment: .leading,
+                            spacing: 4
+                        ) {
+
+                            Text(
+                                rule.weekday.title
+                            )
+
+                            Text(
+                                String(
+                                    format: "%02d:%02d",
+                                    rule.startHour,
+                                    rule.startMinute
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+
+                            Text(
+                                "\(rule.durationMinutes) min"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    .swipeActions(
+                        edge: .trailing,
+                        allowsFullSwipe: false
+                    ) {
+
+                        Button(
+                            role: .destructive
+                        ) {
+
+                            ruleToDelete = rule
+
+                        } label: {
+
+                            Label(
+                                "Delete",
+                                systemImage: "trash"
+                            )
+                        }
                     }
                 }
             }
         }
+
         .navigationTitle("Schedule")
+
         .toolbar {
 
             ToolbarItem(
@@ -126,6 +147,7 @@ struct ScheduleRuleListView: View {
                 }
             }
         }
+
         .sheet(
             isPresented: $showAddScheduleRule
         ) {
@@ -134,6 +156,7 @@ struct ScheduleRuleListView: View {
                 group: group
             )
         }
+
         .confirmationDialog(
             "Delete Schedule?",
             isPresented: Binding(
@@ -161,12 +184,16 @@ struct ScheduleRuleListView: View {
                     for: Date()
                 )
 
+                // Remove future lessons generated
+                // from this schedule rule.
                 LessonGenerator.removeFutureLessons(
                     for: rule,
                     from: today,
                     context: context
                 )
 
+                // Keep the rule in the database,
+                // but deactivate it.
                 rule.isActive = false
 
                 try? context.save()
@@ -178,6 +205,7 @@ struct ScheduleRuleListView: View {
                 "Cancel",
                 role: .cancel
             ) {
+
                 ruleToDelete = nil
             }
 

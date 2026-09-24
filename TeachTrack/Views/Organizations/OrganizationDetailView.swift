@@ -13,7 +13,7 @@ struct OrganizationDetailView: View {
 
     @State
     private var showDeleteConfirmation = false
-    
+
     @State
     private var showAddGroup = false
 
@@ -33,6 +33,11 @@ struct OrganizationDetailView: View {
                 Button("Edit") {
                     showEditOrganization = true
                 }
+            }
+
+            ToolbarItem(
+                placement: .topBarTrailing
+            ) {
                 Button {
                     showAddGroup = true
                 } label: {
@@ -51,6 +56,7 @@ struct OrganizationDetailView: View {
                 }
             }
         }
+
         .sheet(
             isPresented: $showEditOrganization
         ) {
@@ -58,6 +64,7 @@ struct OrganizationDetailView: View {
                 organization: organization
             )
         }
+
         .sheet(
             isPresented: $showAddGroup
         ) {
@@ -65,18 +72,23 @@ struct OrganizationDetailView: View {
                 organization: organization
             )
         }
+
         .confirmationDialog(
             "Delete Organization?",
             isPresented: $showDeleteConfirmation
         ) {
+
             Button(
                 "Delete",
                 role: .destructive
             ) {
+
                 organization.isActive = false
+
                 for group in organization.groups {
                     group.isActive = false
                 }
+
                 try? context.save()
             }
 
@@ -85,7 +97,9 @@ struct OrganizationDetailView: View {
                 role: .cancel
             ) {
             }
+
         } message: {
+
             Text(
                 "Are you sure you want to delete \(organization.name)?"
             )

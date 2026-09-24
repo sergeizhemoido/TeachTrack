@@ -62,6 +62,7 @@ struct EditScheduleRuleView: View {
                         "Weekday",
                         selection: $weekday
                     ) {
+
                         ForEach(
                             Weekday.allCases
                         ) { day in
@@ -91,14 +92,18 @@ struct EditScheduleRuleView: View {
                     )
                 }
             }
+
             .navigationTitle("Edit Schedule")
             .navigationBarTitleDisplayMode(.inline)
+
             .toolbar {
 
                 ToolbarItem(
                     placement: .cancellationAction
                 ) {
+
                     Button("Cancel") {
+
                         dismiss()
                     }
                 }
@@ -106,7 +111,9 @@ struct EditScheduleRuleView: View {
                 ToolbarItem(
                     placement: .confirmationAction
                 ) {
+
                     Button("Save") {
+
                         save()
                     }
                 }
@@ -114,23 +121,24 @@ struct EditScheduleRuleView: View {
         }
     }
 
+    // MARK: - Save
+
     private func save() {
 
-        let calendar = Calendar.current
+        // Keep the current moment.
+        // Lessons that already happened must remain
+        // in the history.
+        let now = Date()
 
-        let today = calendar.startOfDay(
-            for: Date()
-        )
-
-        // Remove future lessons generated
-        // from the old version of this rule.
+        // Remove future lessons generated from
+        // the old version of this schedule rule.
         LessonGenerator.removeFutureLessons(
             for: rule,
-            from: today,
+            from: now,
             context: context
         )
 
-        // Update the rule.
+        // Update the schedule rule.
         rule.weekday = weekday
         rule.startHour = startHour
         rule.startMinute = startMinute
@@ -138,9 +146,10 @@ struct EditScheduleRuleView: View {
 
         try? context.save()
 
-        // Generate the new future lessons.
+        // Generate lessons according to
+        // the new schedule.
         LessonGenerator.generateForCalendar(
-            around: Date(),
+            around: now,
             context: context
         )
 

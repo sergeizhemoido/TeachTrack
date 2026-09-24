@@ -23,8 +23,18 @@ struct AddLessonFromCalendarView: View {
     private var allGroups: [Group]
 
     private var groups: [Group] {
-        allGroups.filter {
-            $0.isActive
+
+        allGroups.filter { group in
+
+            guard group.isActive else {
+                return false
+            }
+
+            guard let organization = group.organization else {
+                return true
+            }
+
+            return organization.isActive
         }
     }
 
@@ -37,7 +47,9 @@ struct AddLessonFromCalendarView: View {
     @State
     private var durationMinutes = 60
 
-    init(selectedDate: Date) {
+    init(
+        selectedDate: Date
+    ) {
 
         self.selectedDate = selectedDate
 
@@ -67,10 +79,20 @@ struct AddLessonFromCalendarView: View {
                             id: \.uuid
                         ) { group in
 
-                            Text(
-                                "\(group.name) — \(group.organization.name)"
-                            )
-                            .tag(group as Group?)
+                            if let organization = group.organization {
+
+                                Text(
+                                    "\(group.name) — \(organization.name)"
+                                )
+                                .tag(group as Group?)
+
+                            } else {
+
+                                Text(
+                                    "\(group.name) — Private Student"
+                                )
+                                .tag(group as Group?)
+                            }
                         }
                     }
                 }
@@ -90,8 +112,10 @@ struct AddLessonFromCalendarView: View {
                     )
                 }
             }
+
             .navigationTitle("New Lesson")
             .navigationBarTitleDisplayMode(.inline)
+
             .toolbar {
 
                 ToolbarItem(
@@ -109,8 +133,7 @@ struct AddLessonFromCalendarView: View {
 
                     Button("Save") {
 
-                        guard let group = selectedGroup
-                        else {
+                        guard let group = selectedGroup else {
                             return
                         }
 

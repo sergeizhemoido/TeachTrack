@@ -25,6 +25,12 @@ final class ScheduleRule {
 
     var isActive: Bool
 
+    @Relationship(
+        deleteRule: .cascade,
+        inverse: \ScheduleException.rule
+    )
+    var exceptions: [ScheduleException] = []
+
     init(
         group: Group,
         weekday: Weekday,

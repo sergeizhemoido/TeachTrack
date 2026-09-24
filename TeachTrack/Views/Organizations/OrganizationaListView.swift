@@ -12,13 +12,12 @@ struct OrganizationsListView: View {
     @Environment(\.modelContext)
     private var context
 
-    @Query(
-        filter: #Predicate<Organization> {
-            $0.isActive
-        },
-        sort: \Organization.name
-    )
-    private var organizations: [Organization]
+    @State
+    private var organizations: [Organization] = []
+
+    private var activeOrganizations: [Organization] {
+        organizations.filter(\.isActive)
+    }
 
     @State
     private var showAddOrganization = false
@@ -32,7 +31,7 @@ struct OrganizationsListView: View {
 
             List {
                 ForEach(
-                    organizations
+                    activeOrganizations
                 ) { organization in
                     NavigationLink {
                         OrganizationDetailView(
@@ -68,6 +67,9 @@ struct OrganizationsListView: View {
             .navigationTitle(
                 "Organizations"
             )
+            .task {
+                loadOrganizations()
+            }
 
             .toolbar {
 
@@ -87,7 +89,9 @@ struct OrganizationsListView: View {
                     $showAddOrganization
             ) {
 
-                AddOrganizationView()
+                AddOrganizationView(
+                    onSave: loadOrganizations
+                )
             }
             
             .confirmationDialog(
@@ -124,6 +128,18 @@ struct OrganizationsListView: View {
                             )
                         }
  
+        }
+    }
+
+    private func loadOrganizations() {
+        let descriptor = FetchDescriptor<Organization>(
+            sortBy: [SortDescriptor(\Organization.name)]
+        )
+
+        do {
+            organizations = try context.fetch(descriptor)
+        } catch {
+            organizations = []
         }
     }
 }

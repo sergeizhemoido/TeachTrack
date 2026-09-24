@@ -27,6 +27,9 @@ struct GroupDetailView: View {
     @State
     private var showDeleteConfirmation = false
 
+    @State
+    private var enrollmentToRemove: Enrollment?
+
     @Query
     private var enrollments: [Enrollment]
 
@@ -36,13 +39,25 @@ struct GroupDetailView: View {
     )
     private var allLessons: [Lesson]
 
+    // MARK: - Active Enrollments
+
     private var activeEnrollments: [Enrollment] {
 
-        enrollments.filter {
-            $0.group.uuid == group.uuid &&
-            $0.isActive
-        }
+        enrollments
+            .filter {
+                $0.group.uuid == group.uuid &&
+                $0.isActive
+            }
+            .sorted {
+                if $0.student.lastName != $1.student.lastName {
+                    return $0.student.lastName < $1.student.lastName
+                }
+
+                return $0.student.firstName < $1.student.firstName
+            }
     }
+
+    // MARK: - Lessons
 
     private var lessons: [Lesson] {
 
@@ -51,9 +66,13 @@ struct GroupDetailView: View {
         }
     }
 
+    // MARK: - Body
+
     var body: some View {
 
         List {
+
+            // MARK: General
 
             Section("General") {
 
@@ -102,44 +121,69 @@ struct GroupDetailView: View {
                 }
             }
 
+            // MARK: Students
+
             Section("Students") {
 
                 if activeEnrollments.isEmpty {
 
                     Text("No Students")
                         .foregroundStyle(.secondary)
-                }
 
-                ForEach(
-                    activeEnrollments,
-                    id: \.uuid
-                ) { enrollment in
+                } else {
 
-                    NavigationLink {
+                    ForEach(
+                        activeEnrollments,
+                        id: \.uuid
+                    ) { enrollment in
 
-                        StudentDetailView(
-                            student: enrollment.student
-                        )
+                        NavigationLink {
 
-                    } label: {
+                            StudentDetailView(
+                                student: enrollment.student
+                            )
 
-                        VStack(
-                            alignment: .leading
+                        } label: {
+
+                            VStack(
+                                alignment: .leading
+                            ) {
+
+                                Text(
+                                    "\(enrollment.student.lastName) \(enrollment.student.firstName)"
+                                )
+
+                                Text(
+                                    enrollment.lessonPrice.formatted()
+                                )
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
+                        }
+
+                        .swipeActions(
+                            edge: .trailing,
+                            allowsFullSwipe: false
                         ) {
 
-                            Text(
-                                "\(enrollment.student.lastName) \(enrollment.student.firstName)"
-                            )
+                            Button {
 
-                            Text(
-                                enrollment.lessonPrice.formatted()
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                                enrollmentToRemove = enrollment
+
+                            } label: {
+
+                                Label(
+                                    "Remove",
+                                    systemImage: "person.badge.minus"
+                                )
+                            }
+                            .tint(.orange)
                         }
                     }
                 }
             }
+
+            // MARK: Lessons
 
             Section("Lessons") {
 
@@ -147,38 +191,40 @@ struct GroupDetailView: View {
 
                     Text("No Lessons")
                         .foregroundStyle(.secondary)
-                }
 
-                ForEach(
-                    lessons,
-                    id: \.uuid
-                ) { lesson in
+                } else {
 
-                    NavigationLink {
+                    ForEach(
+                        lessons,
+                        id: \.uuid
+                    ) { lesson in
 
-                        LessonDetailView(
-                            lesson: lesson
-                        )
+                        NavigationLink {
 
-                    } label: {
-
-                        VStack(
-                            alignment: .leading
-                        ) {
-
-                            Text(
-                                lesson.startDate,
-                                format: .dateTime
-                                    .day()
-                                    .month()
-                                    .year()
+                            LessonDetailView(
+                                lesson: lesson
                             )
 
-                            Text(
-                                lesson.status.rawValue
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        } label: {
+
+                            VStack(
+                                alignment: .leading
+                            ) {
+
+                                Text(
+                                    lesson.startDate,
+                                    format: .dateTime
+                                        .day()
+                                        .month()
+                                        .year()
+                                )
+
+                                Text(
+                                    lesson.status.rawValue
+                                )
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -188,6 +234,8 @@ struct GroupDetailView: View {
         .navigationTitle(
             group.name
         )
+
+        // MARK: Toolbar
 
         .toolbar {
 
@@ -248,6 +296,8 @@ struct GroupDetailView: View {
             }
         }
 
+        // MARK: Edit Group
+
         .sheet(
             isPresented: $showEditGroup
         ) {
@@ -256,6 +306,8 @@ struct GroupDetailView: View {
                 group: group
             )
         }
+
+        // MARK: Add Student
 
         .sheet(
             isPresented: $showAddStudent
@@ -266,6 +318,8 @@ struct GroupDetailView: View {
             )
         }
 
+        // MARK: Add Lesson
+
         .sheet(
             isPresented: $showAddLesson
         ) {
@@ -274,6 +328,54 @@ struct GroupDetailView: View {
                 group: group
             )
         }
+
+        // MARK: Remove Student
+
+        .confirmationDialog(
+            "Remove Student from Group?",
+            isPresented: Binding(
+                get: {
+                    enrollmentToRemove != nil
+                },
+                set: { isPresented in
+
+                    if !isPresented {
+                        enrollmentToRemove = nil
+                    }
+                }
+            ),
+            presenting: enrollmentToRemove
+        ) { enrollment in
+
+            Button(
+                "Remove from Group",
+                role: .destructive
+            ) {
+
+                enrollment.isActive = false
+                enrollment.endDate = .now
+
+                try? context.save()
+
+                enrollmentToRemove = nil
+            }
+
+            Button(
+                "Cancel",
+                role: .cancel
+            ) {
+
+                enrollmentToRemove = nil
+            }
+
+        } message: { enrollment in
+
+            Text(
+                "This will end the student's current enrollment in \(group.name). The enrollment history will be preserved."
+            )
+        }
+
+        // MARK: Delete Group
 
         .confirmationDialog(
             "Delete Group?",
@@ -287,6 +389,16 @@ struct GroupDetailView: View {
 
                 group.isActive = false
 
+                // Close active enrollments but preserve history.
+                for enrollment in group.enrollments {
+
+                    if enrollment.isActive {
+
+                        enrollment.isActive = false
+                        enrollment.endDate = .now
+                    }
+                }
+
                 try? context.save()
             }
 
@@ -299,7 +411,7 @@ struct GroupDetailView: View {
         } message: {
 
             Text(
-                "Are you sure you want to delete \(group.name)?"
+                "Are you sure you want to delete \(group.name)? Active student enrollments will be closed and preserved in history."
             )
         }
     }

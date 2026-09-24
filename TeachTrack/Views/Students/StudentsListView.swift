@@ -22,56 +22,130 @@ struct StudentsListView: View {
 
     @State
     private var showAddStudent = false
-    
+
+    @State
+    private var showAddPrivateStudent = false
+
     @State
     private var studentToDelete: Student?
 
     var body: some View {
 
         NavigationStack {
+
             List {
+
                 ForEach(students) { student in
+
                     NavigationLink {
+
                         StudentDetailView(
                             student: student
                         )
+
                     } label: {
-                        VStack(alignment: .leading) {
+
+                        VStack(
+                            alignment: .leading
+                        ) {
+
                             Text(
                                 "\(student.lastName) \(student.firstName)"
                             )
+
                             if let phone = student.phone {
+
                                 Text(phone)
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(
+                                        .secondary
+                                    )
                             }
                         }
                     }
-                    
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                studentToDelete = student
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
+
+                    .swipeActions(
+                        edge: .trailing,
+                        allowsFullSwipe: false
+                    ) {
+
+                        Button(
+                            role: .destructive
+                        ) {
+
+                            studentToDelete = student
+
+                        } label: {
+
+                            Label(
+                                "Delete",
+                                systemImage: "trash"
+                            )
+                        }
                     }
-                    
                 }
             }
+
             .navigationTitle("Students")
+
             .toolbar {
-                Button {
-                    showAddStudent = true
-                } label: {
-                    Image(systemName: "plus")
+
+                ToolbarItem(
+                    placement: .topBarTrailing
+                ) {
+
+                    Menu {
+
+                        Button {
+
+                            showAddStudent = true
+
+                        } label: {
+
+                            Label(
+                                "New Student",
+                                systemImage:
+                                    "person.badge.plus"
+                            )
+                        }
+
+                        Button {
+
+                            showAddPrivateStudent = true
+
+                        } label: {
+
+                            Label(
+                                "New Private Student",
+                                systemImage:
+                                    "person.crop.circle.badge.plus"
+                            )
+                        }
+
+                    } label: {
+
+                        Image(
+                            systemName: "plus"
+                        )
+                    }
                 }
             }
+
             .sheet(
                 isPresented: $showAddStudent
             ) {
+
                 AddStudentView()
             }
-            
+
+            .sheet(
+                isPresented:
+                    $showAddPrivateStudent
+            ) {
+
+                AddPrivateStudentView()
+            }
+
             .confirmationDialog(
                 "Delete Student?",
                 isPresented: Binding(
@@ -79,6 +153,7 @@ struct StudentsListView: View {
                         studentToDelete != nil
                     },
                     set: { isPresented in
+
                         if !isPresented {
                             studentToDelete = nil
                         }
@@ -86,27 +161,33 @@ struct StudentsListView: View {
                 ),
                 presenting: studentToDelete
             ) { student in
+
                 Button(
                     "Delete",
                     role: .destructive
                 ) {
+
                     student.isActive = false
+
                     try? context.save()
+
                     studentToDelete = nil
-                    }
-                    Button(
-                        "Cancel",
-                        role: .cancel
-                    ) {
-                        studentToDelete = nil
-                        }
-                        } message: { student in
-                            Text(
-                                "Are you sure you want to delete \(student.lastName)?"
-                            )
-                        }
- 
-            
+                }
+
+                Button(
+                    "Cancel",
+                    role: .cancel
+                ) {
+
+                    studentToDelete = nil
+                }
+
+            } message: { student in
+
+                Text(
+                    "Are you sure you want to delete \(student.lastName)?"
+                )
+            }
         }
     }
 }

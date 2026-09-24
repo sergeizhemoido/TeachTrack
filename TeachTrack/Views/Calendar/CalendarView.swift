@@ -13,9 +13,7 @@ struct CalendarView: View {
     @Environment(\.modelContext)
     private var context
 
-    @Query(
-        sort: \Lesson.startDate
-    )
+    @Query(sort: \Lesson.startDate)
     private var lessons: [Lesson]
 
     @State
@@ -63,7 +61,11 @@ struct CalendarView: View {
         )
 
         let leadingEmptyDays =
-            (weekday - calendar.firstWeekday + 7) % 7
+            (
+                weekday -
+                calendar.firstWeekday +
+                7
+            ) % 7
 
         var result: [Date?] = Array(
             repeating: nil,
@@ -110,11 +112,7 @@ struct CalendarView: View {
 
     var body: some View {
 
-        VStack(
-            spacing: 0
-        ) {
-
-            // MARK: Month Header
+        VStack(spacing: 0) {
 
             HStack {
 
@@ -154,15 +152,10 @@ struct CalendarView: View {
             .padding(.horizontal)
             .padding(.vertical, 8)
 
-
-            // MARK: Weekday Header
-
             let weekdays =
                 calendar.shortStandaloneWeekdaySymbols
 
-            HStack(
-                spacing: 0
-            ) {
+            HStack(spacing: 0) {
 
                 ForEach(
                     0..<7,
@@ -179,18 +172,13 @@ struct CalendarView: View {
                         ]
                     )
                     .font(.caption)
-                    .foregroundStyle(
-                        .secondary
-                    )
+                    .foregroundStyle(.secondary)
                     .frame(
                         maxWidth: .infinity
                     )
                 }
             }
             .padding(.horizontal)
-
-
-            // MARK: Month Grid
 
             LazyVGrid(
                 columns: Array(
@@ -234,21 +222,15 @@ struct CalendarView: View {
                     } else {
 
                         Color.clear
-                            .frame(
-                                height: 42
-                            )
+                            .frame(height: 42)
                     }
                 }
             }
             .padding(.horizontal)
             .padding(.top, 8)
 
-
             Divider()
                 .padding(.top, 8)
-
-
-            // MARK: Selected Day Lessons
 
             List {
 
@@ -277,8 +259,7 @@ struct CalendarView: View {
                             } label: {
 
                                 VStack(
-                                    alignment:
-                                        .leading,
+                                    alignment: .leading,
                                     spacing: 4
                                 ) {
 
@@ -289,32 +270,38 @@ struct CalendarView: View {
                                             .hour()
                                             .minute()
                                     )
-                                    .font(
-                                        .headline
-                                    )
+                                    .font(.headline)
 
                                     Text(
                                         lesson.group.name
                                     )
 
-                                    Text(
-                                        lesson.group
-                                            .organization
-                                            .name
-                                    )
-                                    .font(
-                                        .caption
-                                    )
-                                    .foregroundStyle(
-                                        .secondary
-                                    )
+                                    if let organization =
+                                        lesson.group.organization {
+
+                                        Text(
+                                            organization.name
+                                        )
+                                        .font(.caption)
+                                        .foregroundStyle(
+                                            .secondary
+                                        )
+
+                                    } else {
+
+                                        Text(
+                                            "Private Student"
+                                        )
+                                        .font(.caption)
+                                        .foregroundStyle(
+                                            .secondary
+                                        )
+                                    }
 
                                     Text(
                                         lesson.status.rawValue
                                     )
-                                    .font(
-                                        .caption
-                                    )
+                                    .font(.caption)
                                     .foregroundStyle(
                                         .secondary
                                     )
@@ -336,7 +323,9 @@ struct CalendarView: View {
                 }
             }
         }
+
         .navigationTitle("Calendar")
+
         .toolbar {
 
             ToolbarItem(
@@ -355,6 +344,7 @@ struct CalendarView: View {
                 }
             }
         }
+
         .sheet(
             isPresented:
                 $showAddLesson
@@ -365,6 +355,7 @@ struct CalendarView: View {
                     selectedDate
             )
         }
+
         .onAppear {
 
             LessonGenerator.generateForCalendar(
@@ -372,6 +363,7 @@ struct CalendarView: View {
                 context: context
             )
         }
+
         .onChange(
             of: displayedMonth
         ) {
@@ -396,9 +388,6 @@ struct CalendarView: View {
 
             displayedMonth = newMonth
 
-            // If the selected day belongs to
-            // another month, select the first
-            // day of the newly displayed month.
             if !calendar.isDate(
                 selectedDate,
                 equalTo: newMonth,
@@ -415,8 +404,6 @@ struct CalendarView: View {
 }
 
 
-// MARK: - Day Cell
-
 private struct DayCell: View {
 
     let date: Date
@@ -431,9 +418,7 @@ private struct DayCell: View {
             action: action
         ) {
 
-            VStack(
-                spacing: 2
-            ) {
+            VStack(spacing: 2) {
 
                 Text(
                     date,
@@ -463,13 +448,11 @@ private struct DayCell: View {
                 }
                 .foregroundStyle(
                     isSelected
-                    ? .white
-                    : .primary
+                        ? .white
+                        : .primary
                 )
 
-                HStack(
-                    spacing: 2
-                ) {
+                HStack(spacing: 2) {
 
                     ForEach(
                         0..<min(
@@ -487,22 +470,13 @@ private struct DayCell: View {
                             )
                     }
                 }
-                .frame(
-                    height: 6
-                )
+                .frame(height: 6)
             }
             .frame(
                 maxWidth: .infinity
             )
-            .frame(
-                height: 42
-            )
+            .frame(height: 42)
         }
         .buttonStyle(.plain)
     }
-}
-
-
-#Preview {
-    CalendarView()
 }
