@@ -5,6 +5,9 @@ struct StudentDetailView: View {
 
     let student: Student
 
+    @Environment(\.dismiss)
+    private var dismiss
+
     @Environment(\.modelContext)
     private var context
 
@@ -36,15 +39,15 @@ struct StudentDetailView: View {
                     "\(student.firstName) \(student.lastName)"
                 )
 
-                if let phone = student.phone {
+        //        if let phone = student.phone {
 
-                    Text(phone)
-                }
+        //            Text(phone)
+        //        }
 
-                if let email = student.email {
+        //        if let email = student.email {
 
-                    Text(email)
-                }
+        //            Text(email)
+        //        }
             }
 
             if !privateGroups.isEmpty {

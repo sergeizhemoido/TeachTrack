@@ -7,6 +7,24 @@
 import Foundation
 import SwiftData
 
+enum StudentType: String, Codable, CaseIterable, Identifiable {
+    case regular
+    case privateClient
+
+    var id: String {
+        rawValue
+    }
+
+    var title: String {
+        switch self {
+        case .regular:
+            return "Regular"
+        case .privateClient:
+            return "Private Client"
+        }
+    }
+}
+
 @Model
 final class Student {
 
@@ -14,14 +32,13 @@ final class Student {
     var uuid: UUID
 
     var firstName: String
-
     var lastName: String
 
     var phone: String?
-
     var email: String?
-
     var notes: String?
+
+    var studentType: StudentType
 
     var isActive: Bool
 
@@ -30,7 +47,7 @@ final class Student {
         inverse: \Contact.student
     )
     var contacts: [Contact] = []
-    
+
     @Relationship(
         deleteRule: .cascade,
         inverse: \Enrollment.student
@@ -51,11 +68,13 @@ final class Student {
 
     init(
         firstName: String,
-        lastName: String
+        lastName: String,
+        studentType: StudentType = .regular
     ) {
         self.uuid = UUID()
         self.firstName = firstName
         self.lastName = lastName
+        self.studentType = studentType
         self.isActive = true
     }
 }

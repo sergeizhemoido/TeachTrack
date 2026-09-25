@@ -4,6 +4,7 @@
 //
 //  Created by Sergei Zhemoido on 6/9/26.
 //
+
 import Foundation
 import SwiftData
 
@@ -18,12 +19,14 @@ final class StudentService {
 
     func createStudent(
         firstName: String,
-        lastName: String
+        lastName: String,
+        studentType: StudentType
     ) throws {
 
         let student = Student(
             firstName: firstName,
-            lastName: lastName
+            lastName: lastName,
+            studentType: studentType
         )
 
         context.insert(student)
@@ -44,3 +47,4 @@ final class StudentService {
         try context.save()
     }
 }
+

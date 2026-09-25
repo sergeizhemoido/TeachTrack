@@ -4,6 +4,7 @@
 //
 //  Created by Sergei Zhemoido on 6/10/26.
 //
+
 import SwiftUI
 import SwiftData
 
@@ -17,12 +18,7 @@ struct AddEnrollmentView: View {
     @Environment(\.modelContext)
     private var context
 
-    @Query(
-        filter: #Predicate<Student> {
-            $0.isActive
-        },
-        sort: \Student.lastName
-    )
+    @Query
     private var allStudents: [Student]
 
     @Query
@@ -32,24 +28,84 @@ struct AddEnrollmentView: View {
     private var selectedStudent: Student?
 
     @State
-    private var lessonPrice = ""
-
-    @State
     private var showDuplicateWarning = false
 
-    // Students who do NOT currently have
-    // an active enrollment in this group.
     private var availableStudents: [Student] {
 
-        allStudents.filter { student in
+        let requiredType: StudentType =
+            group.organization?.type == .privateClient
+            ? .privateClient
+            : .regular
 
-            !allEnrollments.contains { enrollment in
+        print("")
+        print("========== AddEnrollmentView ==========")
+
+        print("GROUP:")
+        print("  Name:", group.name)
+
+        print("ORGANIZATION:")
+        print(
+            "  Name:",
+            group.organization?.name ?? "nil"
+        )
+
+        print(
+            "  Type:",
+            group.organization?.type.rawValue ?? "nil"
+        )
+
+        print("STUDENT FILTER:")
+        print(
+            "  Required type:",
+            requiredType.rawValue
+        )
+
+        print("ALL ACTIVE STUDENTS:")
+
+        for student in allStudents where student.isActive {
+
+            print(
+                "  \(student.lastName) \(student.firstName)",
+                "| studentType:",
+                student.studentType.rawValue
+            )
+        }
+
+        let result = allStudents.filter { student in
+
+            guard student.isActive else {
+                return false
+            }
+
+            guard student.studentType == requiredType else {
+                return false
+            }
+
+            let alreadyEnrolled = allEnrollments.contains { enrollment in
 
                 enrollment.student.uuid == student.uuid &&
                 enrollment.group.uuid == group.uuid &&
                 enrollment.isActive
             }
+
+            return !alreadyEnrolled
         }
+
+        print("AVAILABLE STUDENTS:")
+
+        for student in result {
+
+            print(
+                "  \(student.lastName) \(student.firstName)",
+                "| studentType:",
+                student.studentType.rawValue
+            )
+        }
+
+        print("=======================================")
+        print("")
+
+        return result
     }
 
     var body: some View {
@@ -88,15 +144,6 @@ struct AddEnrollmentView: View {
                         }
                     }
                 }
-
-                Section("Lesson Price") {
-
-                    TextField(
-                        "Price",
-                        text: $lessonPrice
-                    )
-                    .keyboardType(.decimalPad)
-                }
             }
 
             .navigationTitle("Add Student")
@@ -117,12 +164,11 @@ struct AddEnrollmentView: View {
                     placement: .confirmationAction
                 ) {
 
-                    Button("Save") {
+                    Button("Add") {
                         save()
                     }
                     .disabled(
-                        selectedStudent == nil ||
-                        Decimal(string: lessonPrice) == nil
+                        selectedStudent == nil
                     )
                 }
             }
@@ -146,41 +192,60 @@ struct AddEnrollmentView: View {
 
     private func save() {
 
-        guard
-            let student = selectedStudent,
-            let price = Decimal(
-                string: lessonPrice
-            )
-        else {
+        guard let student = selectedStudent else {
             return
         }
 
-        let studentID = student.uuid
-        let groupID = group.uuid
-
-        // Final protection against creating
-        // two active enrollments for the same
-        // student in the same group.
-        let descriptor = FetchDescriptor<Enrollment>(
-            predicate: #Predicate<Enrollment> {
-                $0.student.uuid == studentID &&
-                $0.group.uuid == groupID &&
-                $0.isActive
-            }
+        print("")
+        print("========== SAVING ENROLLMENT ==========")
+        print(
+            "Student:",
+            student.firstName,
+            student.lastName
+        )
+        print(
+            "Student type:",
+            student.studentType.rawValue
+        )
+        print(
+            "Group:",
+            group.name
+        )
+        print(
+            "Organization:",
+            group.organization?.name ?? "nil"
+        )
+        print(
+            "Organization type:",
+            group.organization?.type.rawValue ?? "nil"
         )
 
-        let alreadyEnrolled =
-            ((try? context.fetchCount(descriptor)) ?? 0) > 0
+        let alreadyEnrolled = allEnrollments.contains { enrollment in
+
+            enrollment.student.uuid == student.uuid &&
+            enrollment.group.uuid == group.uuid &&
+            enrollment.isActive
+        }
 
         guard !alreadyEnrolled else {
+
+            print("RESULT: Already enrolled")
+            print("=======================================")
+            print("")
 
             showDuplicateWarning = true
             return
         }
 
-        // A new enrollment is always created.
-        // Previous inactive enrollments remain
-        // in the database as history.
+        guard let price = group.ratePerStudent else {
+
+            print("RESULT: No ratePerStudent")
+            print("=======================================")
+            print("")
+
+            return
+        }
+
         let enrollment = Enrollment(
             student: student,
             group: group,
@@ -190,13 +255,24 @@ struct AddEnrollmentView: View {
         context.insert(enrollment)
 
         do {
+
             try context.save()
+
+            print("RESULT: Enrollment saved successfully")
+            print("=======================================")
+            print("")
+
             dismiss()
 
         } catch {
+
             print(
-                "Failed to save enrollment: \(error)"
+                "RESULT: Failed to save enrollment:",
+                error
             )
+            print("=======================================")
+            print("")
+
         }
     }
 }

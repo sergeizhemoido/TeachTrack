@@ -4,6 +4,7 @@
 //
 //  Created by Sergei Zhemoido on 6/10/26.
 //
+
 import SwiftUI
 import SwiftData
 
@@ -29,6 +30,10 @@ struct AddGroupView: View {
     @State
     private var fixedLessonRate = ""
 
+    private var isPrivateClient: Bool {
+        organization.type == .privateClient
+    }
+
     var body: some View {
 
         NavigationStack {
@@ -42,18 +47,21 @@ struct AddGroupView: View {
                         text: $name
                     )
 
-                    Picker(
-                        "Compensation",
-                        selection: $revenueModel
-                    ) {
+                    if !isPrivateClient {
 
-                        ForEach(
-                            RevenueModel.allCases,
-                            id: \.self
-                        ) { model in
+                        Picker(
+                            "Compensation",
+                            selection: $revenueModel
+                        ) {
 
-                            Text(model.title)
-                                .tag(model)
+                            ForEach(
+                                RevenueModel.allCases,
+                                id: \.self
+                            ) { model in
+
+                                Text(model.title)
+                                    .tag(model)
+                            }
                         }
                     }
                 }
@@ -103,18 +111,25 @@ struct AddGroupView: View {
 
                     Button("Save") {
 
+                        let finalRevenueModel: RevenueModel =
+                            isPrivateClient
+                            ? .perStudent
+                            : revenueModel
+
                         let group = Group(
                             name: name,
-                            revenueModel: revenueModel,
+                            revenueModel: finalRevenueModel,
                             organization: organization
                         )
 
-                        if revenueModel == .perStudent {
+                        if finalRevenueModel == .perStudent {
 
                             group.ratePerStudent =
                                 Decimal(
                                     string: ratePerStudent
                                 )
+
+                            group.fixedLessonRate = nil
 
                         } else {
 
@@ -122,6 +137,8 @@ struct AddGroupView: View {
                                 Decimal(
                                     string: fixedLessonRate
                                 )
+
+                            group.ratePerStudent = nil
                         }
 
                         context.insert(group)
@@ -140,3 +157,4 @@ struct AddGroupView: View {
         }
     }
 }
+

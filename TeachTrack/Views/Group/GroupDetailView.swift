@@ -159,11 +159,11 @@ struct GroupDetailView: View {
                                     "\(enrollment.student.lastName) \(enrollment.student.firstName)"
                                 )
 
-                                Text(
-                                    enrollment.lessonPrice.formatted()
-                                )
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            //    Text(
+                            //        enrollment.lessonPrice.formatted()
+                            //    )
+                            //    .font(.caption)
+                            //    .foregroundStyle(.secondary)
                             }
                         }
 

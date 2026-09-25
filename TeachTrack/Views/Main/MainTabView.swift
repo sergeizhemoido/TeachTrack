@@ -23,7 +23,7 @@ struct MainTabView: View {
             }
 
             NavigationStack {
-                StudentsListView()
+                StudentListView()
             }
             .tabItem {
                 Label(

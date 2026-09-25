@@ -4,10 +4,13 @@
 //
 //  Created by Sergei Zhemoido on 9/23/26.
 //
+
 import SwiftUI
 import SwiftData
 
 struct AddPrivateStudentView: View {
+
+    let organization: Organization
 
     @Environment(\.dismiss)
     private var dismiss
@@ -48,18 +51,18 @@ struct AddPrivateStudentView: View {
                         text: $lastName
                     )
 
-                    TextField(
-                        "Phone",
-                        text: $phone
-                    )
-                    .keyboardType(.phonePad)
+             //       TextField(
+             //           "Phone",
+             //           text: $phone
+             //       )
+             //       .keyboardType(.phonePad)
 
-                    TextField(
-                        "Email",
-                        text: $email
-                    )
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
+             //       TextField(
+             //           "Email",
+             //           text: $email
+             //       )
+             //       .keyboardType(.emailAddress)
+             //       .textInputAutocapitalization(.never)
                 }
 
                 Section("Lesson") {
@@ -123,9 +126,15 @@ struct AddPrivateStudentView: View {
                 in: .whitespacesAndNewlines
             )
 
+        let price =
+            Decimal(string: lessonPrice) ?? 0
+
+        // Private students are always created
+        // with the privateClient student type.
         let student = Student(
             firstName: cleanFirstName,
-            lastName: cleanLastName
+            lastName: cleanLastName,
+            studentType: .privateClient
         )
 
         student.phone =
@@ -138,32 +147,38 @@ struct AddPrivateStudentView: View {
                 in: .whitespacesAndNewlines
             )
 
+        // Each private student gets an individual group.
+        // The group belongs to the selected Private Client organization.
         let group = Group(
             name: "\(cleanFirstName) \(cleanLastName)",
             revenueModel: .perStudent,
-            organization: nil
+            organization: organization
         )
 
-        group.ratePerStudent =
-            Decimal(
-                string: lessonPrice
-            )
+        group.ratePerStudent = price
+        group.fixedLessonRate = nil
 
         let enrollment = Enrollment(
             student: student,
             group: group,
-            lessonPrice:
-                Decimal(
-                    string: lessonPrice
-                ) ?? 0
+            lessonPrice: price
         )
 
         context.insert(student)
         context.insert(group)
         context.insert(enrollment)
 
-        try? context.save()
+        do {
 
-        dismiss()
+            try context.save()
+            dismiss()
+
+        } catch {
+
+            print(
+                "Failed to save private student: \(error)"
+            )
+        }
     }
 }
+

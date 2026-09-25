@@ -1,3 +1,4 @@
+
 import SwiftUI
 import SwiftData
 
@@ -9,100 +10,108 @@ struct OrganizationDetailView: View {
     private var context
 
     @State
-    private var showEditOrganization = false
-
-    @State
-    private var showDeleteConfirmation = false
-
-    @State
     private var showAddGroup = false
+
+    @State
+    private var showAddPrivateStudent = false
 
     var body: some View {
 
-        GroupListView(
-            organization: organization
-        )
-        .navigationTitle(
-            organization.name
-        )
+        List {
+
+            Section("Organization") {
+
+                Text(organization.name)
+
+                Text(organization.type.title)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Groups") {
+
+                ForEach(
+                    organization.groups
+                        .filter { $0.isActive }
+                        .sorted { $0.name < $1.name },
+                    id: \.uuid
+                ) { group in
+
+                    NavigationLink {
+
+                        GroupDetailView(
+                            group: group
+                        )
+
+                    } label: {
+
+                        VStack(
+                            alignment: .leading
+                        ) {
+
+                            Text(group.name)
+
+                            Text(group.revenueModel.title)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+        }
+
+        .navigationTitle(organization.name)
+        .navigationBarTitleDisplayMode(.inline)
+
         .toolbar {
 
             ToolbarItem(
                 placement: .topBarTrailing
             ) {
-                Button("Edit") {
-                    showEditOrganization = true
+
+                if organization.type == .privateClient {
+
+                    Button {
+                        showAddPrivateStudent = true
+                    } label: {
+
+                        Label(
+                            "Add Student",
+                            systemImage: "person.badge.plus"
+                        )
+                    }
+
+                } else {
+
+                    Button {
+                        showAddGroup = true
+                    } label: {
+
+                        Label(
+                            "Add Group",
+                            systemImage: "plus"
+                        )
+                    }
                 }
             }
-
-            ToolbarItem(
-                placement: .topBarTrailing
-            ) {
-                Button {
-                    showAddGroup = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
-
-            ToolbarItem(
-                placement: .bottomBar
-            ) {
-                Button(
-                    "Delete Organization",
-                    role: .destructive
-                ) {
-                    showDeleteConfirmation = true
-                }
-            }
-        }
-
-        .sheet(
-            isPresented: $showEditOrganization
-        ) {
-            EditOrganizationView(
-                organization: organization
-            )
         }
 
         .sheet(
             isPresented: $showAddGroup
         ) {
+
             AddGroupView(
                 organization: organization
             )
         }
 
-        .confirmationDialog(
-            "Delete Organization?",
-            isPresented: $showDeleteConfirmation
+        .sheet(
+            isPresented: $showAddPrivateStudent
         ) {
 
-            Button(
-                "Delete",
-                role: .destructive
-            ) {
-
-                organization.isActive = false
-
-                for group in organization.groups {
-                    group.isActive = false
-                }
-
-                try? context.save()
-            }
-
-            Button(
-                "Cancel",
-                role: .cancel
-            ) {
-            }
-
-        } message: {
-
-            Text(
-                "Are you sure you want to delete \(organization.name)?"
+            AddPrivateStudentView(
+                organization: organization
             )
         }
     }
 }
+
