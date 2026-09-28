@@ -33,6 +33,9 @@ struct GroupDetailView: View {
     @State
     private var lessonToDelete: Lesson?
 
+    @State
+    private var lessonDeletionErrorMessage: String?
+
     @Query
     private var enrollments: [Enrollment]
 
@@ -84,10 +87,6 @@ struct GroupDetailView: View {
 
                 Text(group.name)
 
-                Text(
-                    group.revenueModel.title
-                )
-
                 NavigationLink {
 
                     ScheduleRuleListView(
@@ -129,6 +128,7 @@ struct GroupDetailView: View {
 
             // MARK: Students
 
+            if group.revenueModel == .perStudent {
             Section("Students") {
 
                 if activeEnrollments.isEmpty {
@@ -188,6 +188,7 @@ struct GroupDetailView: View {
                     }
                 }
             }
+            }
 
             // MARK: Lessons
 
@@ -232,6 +233,7 @@ struct GroupDetailView: View {
                                 .foregroundStyle(.secondary)
                             }
                         }
+                        .accessibilityIdentifier("lessonRow")
 
                         .swipeActions(
                             edge: .trailing,
@@ -274,16 +276,15 @@ struct GroupDetailView: View {
 
                 Menu {
 
-                    Button {
-
-                        showAddStudent = true
-
-                    } label: {
-
-                        Label(
-                            "Add Student",
-                            systemImage: "person.badge.plus"
-                        )
+                    if group.revenueModel == .perStudent {
+                        Button {
+                            showAddStudent = true
+                        } label: {
+                            Label(
+                                "Add Student",
+                                systemImage: "person.badge.plus"
+                            )
+                        }
                     }
 
                     Button {
@@ -304,6 +305,7 @@ struct GroupDetailView: View {
                         systemName: "plus"
                     )
                 }
+                .accessibilityIdentifier("groupAddMenu")
             }
 
             ToolbarItem(
@@ -336,10 +338,9 @@ struct GroupDetailView: View {
         .sheet(
             isPresented: $showAddStudent
         ) {
-
-            AddEnrollmentView(
-                group: group
-            )
+            if group.revenueModel == .perStudent {
+                AddEnrollmentView(group: group)
+            }
         }
 
         // MARK: Add Lesson
@@ -422,9 +423,14 @@ struct GroupDetailView: View {
                 role: .destructive
             ) {
 
-                context.delete(lesson)
-
-                try? context.save()
+                do {
+                    try FixedLessonBillingService.removeCharge(for: lesson, context: context)
+                    context.delete(lesson)
+                    try context.save()
+                } catch {
+                    context.rollback()
+                    lessonDeletionErrorMessage = error.localizedDescription
+                }
 
                 lessonToDelete = nil
             }
@@ -482,6 +488,17 @@ struct GroupDetailView: View {
             Text(
                 "Are you sure you want to delete \(group.name)? Active student enrollments will be closed and preserved in history."
             )
+        }
+        .alert(
+            "Unable to Delete Lesson",
+            isPresented: Binding(
+                get: { lessonDeletionErrorMessage != nil },
+                set: { if !$0 { lessonDeletionErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { lessonDeletionErrorMessage = nil }
+        } message: {
+            Text(lessonDeletionErrorMessage ?? "")
         }
     }
 }

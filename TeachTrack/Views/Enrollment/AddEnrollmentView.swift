@@ -28,7 +28,13 @@ struct AddEnrollmentView: View {
     private var selectedStudent: Student?
 
     @State
-    private var showDuplicateWarning = false
+    private var alertTitle = ""
+
+    @State
+    private var alertMessage = ""
+
+    @State
+    private var showAlert = false
 
     private var availableStudents: [Student] {
 
@@ -36,40 +42,6 @@ struct AddEnrollmentView: View {
             group.organization?.type == .privateClient
             ? .privateClient
             : .regular
-
-        print("")
-        print("========== AddEnrollmentView ==========")
-
-        print("GROUP:")
-        print("  Name:", group.name)
-
-        print("ORGANIZATION:")
-        print(
-            "  Name:",
-            group.organization?.name ?? "nil"
-        )
-
-        print(
-            "  Type:",
-            group.organization?.type.rawValue ?? "nil"
-        )
-
-        print("STUDENT FILTER:")
-        print(
-            "  Required type:",
-            requiredType.rawValue
-        )
-
-        print("ALL ACTIVE STUDENTS:")
-
-        for student in allStudents where student.isActive {
-
-            print(
-                "  \(student.lastName) \(student.firstName)",
-                "| studentType:",
-                student.studentType.rawValue
-            )
-        }
 
         let result = allStudents.filter { student in
 
@@ -90,20 +62,6 @@ struct AddEnrollmentView: View {
 
             return !alreadyEnrolled
         }
-
-        print("AVAILABLE STUDENTS:")
-
-        for student in result {
-
-            print(
-                "  \(student.lastName) \(student.firstName)",
-                "| studentType:",
-                student.studentType.rawValue
-            )
-        }
-
-        print("=======================================")
-        print("")
 
         return result
     }
@@ -142,6 +100,7 @@ struct AddEnrollmentView: View {
                                 .tag(student as Student?)
                             }
                         }
+                        .accessibilityIdentifier("studentPicker")
                     }
                 }
             }
@@ -164,7 +123,7 @@ struct AddEnrollmentView: View {
                     placement: .confirmationAction
                 ) {
 
-                    Button("Add") {
+                    Button("Save") {
                         save()
                     }
                     .disabled(
@@ -173,19 +132,10 @@ struct AddEnrollmentView: View {
                 }
             }
 
-            .alert(
-                "Student Already Enrolled",
-                isPresented: $showDuplicateWarning
-            ) {
-
-                Button("OK", role: .cancel) {
-                }
-
+            .alert(alertTitle, isPresented: $showAlert) {
+                Button("OK", role: .cancel) { }
             } message: {
-
-                Text(
-                    "This student is already actively enrolled in this group."
-                )
+                Text(alertMessage)
             }
         }
     }
@@ -196,30 +146,6 @@ struct AddEnrollmentView: View {
             return
         }
 
-        print("")
-        print("========== SAVING ENROLLMENT ==========")
-        print(
-            "Student:",
-            student.firstName,
-            student.lastName
-        )
-        print(
-            "Student type:",
-            student.studentType.rawValue
-        )
-        print(
-            "Group:",
-            group.name
-        )
-        print(
-            "Organization:",
-            group.organization?.name ?? "nil"
-        )
-        print(
-            "Organization type:",
-            group.organization?.type.rawValue ?? "nil"
-        )
-
         let alreadyEnrolled = allEnrollments.contains { enrollment in
 
             enrollment.student.uuid == student.uuid &&
@@ -229,27 +155,29 @@ struct AddEnrollmentView: View {
 
         guard !alreadyEnrolled else {
 
-            print("RESULT: Already enrolled")
-            print("=======================================")
-            print("")
-
-            showDuplicateWarning = true
+            alertTitle = "Student Already Enrolled"
+            alertMessage = "This student is already actively enrolled in this group."
+            showAlert = true
             return
         }
 
-        guard let price = group.ratePerStudent else {
-
-            print("RESULT: No ratePerStudent")
-            print("=======================================")
-            print("")
-
-            return
+        let lessonPrice: Decimal?
+        if group.revenueModel == .perStudent {
+            guard let rate = group.ratePerStudent else {
+                alertTitle = "Rate Required"
+                alertMessage = "Set a rate per student in the group details before enrolling a student."
+                showAlert = true
+                return
+            }
+            lessonPrice = rate
+        } else {
+            lessonPrice = nil
         }
 
         let enrollment = Enrollment(
             student: student,
             group: group,
-            lessonPrice: price
+            lessonPrice: lessonPrice
         )
 
         context.insert(enrollment)
@@ -258,21 +186,12 @@ struct AddEnrollmentView: View {
 
             try context.save()
 
-            print("RESULT: Enrollment saved successfully")
-            print("=======================================")
-            print("")
-
             dismiss()
 
         } catch {
-
-            print(
-                "RESULT: Failed to save enrollment:",
-                error
-            )
-            print("=======================================")
-            print("")
-
+            alertTitle = "Unable to Save Enrollment"
+            alertMessage = error.localizedDescription
+            showAlert = true
         }
     }
 }

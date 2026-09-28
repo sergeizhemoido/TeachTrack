@@ -101,6 +101,7 @@ struct StudentListView: View {
                         systemImage: "person.badge.plus"
                     )
                 }
+                .accessibilityIdentifier("addRegularStudentButton")
             }
         }
 
@@ -161,4 +162,3 @@ struct StudentListView: View {
         }
     }
 }
-

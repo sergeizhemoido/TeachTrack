@@ -53,6 +53,7 @@ struct OrganizationsListView: View {
                             )
                         }
                     }
+                    .accessibilityIdentifier("organizationRow-\(organization.name)")
                     
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
@@ -83,6 +84,7 @@ struct OrganizationsListView: View {
                         systemName: "plus"
                     )
                 }
+                .accessibilityIdentifier("addOrganizationButton")
             }
             .sheet(
                 isPresented:

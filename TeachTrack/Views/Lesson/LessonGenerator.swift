@@ -221,13 +221,15 @@ struct LessonGenerator {
     static func deleteGeneratedLesson(
         _ lesson: Lesson,
         context: ModelContext
-    ) {
+    ) throws {
+
+        try FixedLessonBillingService.removeCharge(for: lesson, context: context)
 
         guard lesson.source == .generated,
               let rule = lesson.generatedFromRule
         else {
             context.delete(lesson)
-            try? context.save()
+            try context.save()
             return
         }
 
@@ -254,7 +256,7 @@ struct LessonGenerator {
 
         context.delete(lesson)
 
-        try? context.save()
+        try context.save()
     }
 
 

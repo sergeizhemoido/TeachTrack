@@ -14,7 +14,7 @@ final class Group {
     var uuid: UUID
 
     var name: String
-    var revenueModel: RevenueModel
+    private(set) var revenueModel: RevenueModel
     var fixedLessonRate: Decimal?
     var ratePerStudent: Decimal?
     var notes: String?

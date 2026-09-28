@@ -17,7 +17,7 @@ final class Enrollment {
 
     var group: Group
 
-    var lessonPrice: Decimal
+    var lessonPrice: Decimal?
 
     var enrollmentDate: Date
 
@@ -28,7 +28,7 @@ final class Enrollment {
     init(
         student: Student,
         group: Group,
-        lessonPrice: Decimal
+        lessonPrice: Decimal?
     ) {
         self.uuid = UUID()
         self.student = student

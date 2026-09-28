@@ -20,6 +20,9 @@ struct EditLessonView: View {
     @State
     private var status: LessonStatus
 
+    @State
+    private var saveErrorMessage: String?
+
     init(lesson: Lesson) {
 
         self.lesson = lesson
@@ -78,6 +81,7 @@ struct EditLessonView: View {
                             .tag(status)
                         }
                     }
+                    .accessibilityIdentifier("lessonStatusPicker")
                 }
             }
             .navigationTitle("Edit Lesson")
@@ -98,30 +102,42 @@ struct EditLessonView: View {
                 ) {
 
                     Button("Save") {
-
-                        lesson.startDate =
-                            startDate
-
-                        lesson.endDate =
-                            startDate.addingTimeInterval(
-                                Double(
-                                    durationMinutes * 60
-                                )
-                            )
-
-                        lesson.status = status
-                        
-                        if lesson.source == .generated {
-                            lesson.isManuallyModified = true
-                        }
-                        
-                        try? context.save()
-
-                        dismiss()
+                        saveLesson()
                     }
                 }
             }
         }
+        .alert(
+            "Unable to Save Lesson",
+            isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { saveErrorMessage = nil }
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
+    }
+
+    private func saveLesson() {
+        lesson.startDate = startDate
+        lesson.endDate = startDate.addingTimeInterval(
+            Double(durationMinutes * 60)
+        )
+        lesson.status = status
+
+        if lesson.source == .generated {
+            lesson.isManuallyModified = true
+        }
+
+        do {
+            try FixedLessonBillingService.syncCharge(for: lesson, context: context)
+            try context.save()
+            dismiss()
+        } catch {
+            context.rollback()
+            saveErrorMessage = error.localizedDescription
+        }
     }
 }
-

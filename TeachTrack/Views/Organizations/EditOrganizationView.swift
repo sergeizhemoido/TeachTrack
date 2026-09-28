@@ -26,6 +26,21 @@ struct EditOrganizationView: View {
     @State
     private var type: OrganizationType
 
+    @State
+    private var phone: String
+
+    @State
+    private var email: String
+
+    @State
+    private var address: String
+
+    @State
+    private var notes: String
+
+    @State
+    private var saveErrorMessage: String?
+
     init(organization: Organization) {
 
         self.organization = organization
@@ -37,6 +52,11 @@ struct EditOrganizationView: View {
         _type = State(
             initialValue: organization.type
         )
+
+        _phone = State(initialValue: organization.phone ?? "")
+        _email = State(initialValue: organization.email ?? "")
+        _address = State(initialValue: organization.address ?? "")
+        _notes = State(initialValue: organization.notes ?? "")
     }
 
     var body: some View {
@@ -52,21 +72,28 @@ struct EditOrganizationView: View {
                         text: $name
                     )
 
-                    Picker(
-                        "Type",
-                        selection: $type
-                    ) {
-
-                        ForEach(
-                            OrganizationType.allCases
-                        ) { type in
-
-                            Text(
-                                type.title
-                            )
-                            .tag(type)
+                    if organization.type != .privateClient {
+                        Picker(
+                            "Type",
+                            selection: $type
+                        ) {
+                            ForEach(OrganizationType.allCases) { type in
+                                Text(type.title)
+                                    .tag(type)
+                            }
                         }
                     }
+
+                    TextField("Phone", text: $phone)
+                        .keyboardType(.phonePad)
+
+                    TextField("Email", text: $email)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+
+                    TextField("Address", text: $address)
+
+                    TextField("Notes", text: $notes, axis: .vertical)
                 }
             }
 
@@ -95,18 +122,7 @@ struct EditOrganizationView: View {
                 ) {
 
                     Button("Save") {
-
-                        organization.name =
-                            name.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-
-                        organization.type =
-                            type
-
-                        try? context.save()
-
-                        dismiss()
+                        saveOrganization()
                     }
                     .disabled(
                         name.trimmingCharacters(
@@ -116,6 +132,39 @@ struct EditOrganizationView: View {
                 }
             }
         }
+        .alert(
+            "Unable to Save Organization",
+            isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { saveErrorMessage = nil }
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
+    }
+
+    private func saveOrganization() {
+        organization.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if organization.type != .privateClient {
+            organization.type = type
+        }
+        organization.phone = optionalValue(phone)
+        organization.email = optionalValue(email)
+        organization.address = optionalValue(address)
+        organization.notes = optionalValue(notes)
+
+        do {
+            try context.save()
+            dismiss()
+        } catch {
+            saveErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func optionalValue(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
-

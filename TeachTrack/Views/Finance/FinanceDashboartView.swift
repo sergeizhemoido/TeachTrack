@@ -64,6 +64,7 @@ struct FinanceDashboardView: View {
                     Text(
                         totalCharges.formatted()
                     )
+                    .accessibilityIdentifier("financeTotalCharges")
                 }
             }
         }

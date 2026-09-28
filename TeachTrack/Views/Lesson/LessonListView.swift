@@ -20,6 +20,9 @@ struct LessonListView: View {
     @State
     private var lessonToCancel: Lesson?
 
+    @State
+    private var cancellationErrorMessage: String?
+
     private var lessons: [Lesson] {
 
         allLessons.filter {
@@ -124,7 +127,13 @@ struct LessonListView: View {
             ) {
 
                 lesson.status = .cancelled
-                try? context.save()
+                do {
+                    try FixedLessonBillingService.syncCharge(for: lesson, context: context)
+                    try context.save()
+                } catch {
+                    context.rollback()
+                    cancellationErrorMessage = error.localizedDescription
+                }
 
                 lessonToCancel = nil
             }
@@ -142,6 +151,17 @@ struct LessonListView: View {
             Text(
                 "Are you sure you want to cancel this lesson?"
             )
+        }
+        .alert(
+            "Unable to Cancel Lesson",
+            isPresented: Binding(
+                get: { cancellationErrorMessage != nil },
+                set: { if !$0 { cancellationErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { cancellationErrorMessage = nil }
+        } message: {
+            Text(cancellationErrorMessage ?? "")
         }
     }
 }

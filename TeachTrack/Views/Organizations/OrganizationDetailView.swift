@@ -9,11 +9,32 @@ struct OrganizationDetailView: View {
     @Environment(\.modelContext)
     private var context
 
+    @Query
+    private var allGroups: [Group]
+
+    @Query
+    private var allEnrollments: [Enrollment]
+
+    private var activeGroups: [Group] {
+        allGroups
+            .filter { $0.organization?.uuid == organization.uuid && $0.isActive }
+            .sorted { $0.name < $1.name }
+    }
+
     @State
     private var showAddGroup = false
 
     @State
     private var showAddPrivateStudent = false
+
+    @State
+    private var showEditOrganization = false
+
+    @State
+    private var groupToArchive: Group?
+
+    @State
+    private var archiveErrorMessage: String?
 
     var body: some View {
 
@@ -27,20 +48,23 @@ struct OrganizationDetailView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Section("Groups") {
+            Section(organization.type == .privateClient ? "Students" : "Groups") {
 
                 ForEach(
-                    organization.groups
-                        .filter { $0.isActive }
-                        .sorted { $0.name < $1.name },
+                    activeGroups,
                     id: \.uuid
                 ) { group in
 
                     NavigationLink {
-
-                        GroupDetailView(
-                            group: group
-                        )
+                        if organization.type == .privateClient,
+                           let student = privateStudent(for: group) {
+                            PrivateStudentDetailView(
+                                student: student,
+                                group: group
+                            )
+                        } else {
+                            GroupDetailView(group: group)
+                        }
 
                     } label: {
 
@@ -50,9 +74,14 @@ struct OrganizationDetailView: View {
 
                             Text(group.name)
 
-                            Text(group.revenueModel.title)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityIdentifier("groupRow-\(group.name)")
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            groupToArchive = group
+                        } label: {
+                            Label("Delete", systemImage: "trash")
                         }
                     }
                 }
@@ -64,9 +93,10 @@ struct OrganizationDetailView: View {
 
         .toolbar {
 
-            ToolbarItem(
-                placement: .topBarTrailing
-            ) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button("Edit") {
+                    showEditOrganization = true
+                }
 
                 if organization.type == .privateClient {
 
@@ -79,6 +109,7 @@ struct OrganizationDetailView: View {
                             systemImage: "person.badge.plus"
                         )
                     }
+                    .accessibilityIdentifier("addPrivateStudentButton")
 
                 } else {
 
@@ -91,6 +122,7 @@ struct OrganizationDetailView: View {
                             systemImage: "plus"
                         )
                     }
+                    .accessibilityIdentifier("addGroupButton")
                 }
             }
         }
@@ -112,6 +144,69 @@ struct OrganizationDetailView: View {
                 organization: organization
             )
         }
+
+        .sheet(isPresented: $showEditOrganization) {
+            EditOrganizationView(organization: organization)
+        }
+        .confirmationDialog(
+            "Delete Group?",
+            isPresented: Binding(
+                get: { groupToArchive != nil },
+                set: { if !$0 { groupToArchive = nil } }
+            ),
+            presenting: groupToArchive
+        ) { group in
+            Button("Delete", role: .destructive) {
+                archive(group)
+            }
+            Button("Cancel", role: .cancel) {
+                groupToArchive = nil
+            }
+        } message: { group in
+            Text("\(group.name) will be archived and its active student enrollments will be closed.")
+        }
+        .alert(
+            "Unable to Delete Group",
+            isPresented: Binding(
+                get: { archiveErrorMessage != nil },
+                set: { if !$0 { archiveErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { archiveErrorMessage = nil }
+        } message: {
+            Text(archiveErrorMessage ?? "")
+        }
+    }
+
+    private func privateStudent(for group: Group) -> Student? {
+        allEnrollments.first {
+            $0.group.uuid == group.uuid && $0.isActive
+        }?.student
+    }
+
+    private func archive(_ group: Group) {
+        let associatedPrivateStudent = organization.type == .privateClient
+            ? privateStudent(for: group)
+            : nil
+
+        group.isActive = false
+
+        for enrollment in group.enrollments where enrollment.isActive {
+            enrollment.isActive = false
+            enrollment.endDate = .now
+        }
+
+        if let student = associatedPrivateStudent {
+            student.isActive = false
+        }
+
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            archiveErrorMessage = error.localizedDescription
+        }
+
+        groupToArchive = nil
     }
 }
-

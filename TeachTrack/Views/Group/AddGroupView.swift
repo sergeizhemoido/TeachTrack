@@ -22,7 +22,7 @@ struct AddGroupView: View {
     private var name = ""
 
     @State
-    private var revenueModel: RevenueModel = .perStudent
+    private var revenueModel: RevenueModel?
 
     @State
     private var ratePerStudent = ""
@@ -30,8 +30,30 @@ struct AddGroupView: View {
     @State
     private var fixedLessonRate = ""
 
+    @State
+    private var saveErrorMessage: String?
+
     private var isPrivateClient: Bool {
         organization.type == .privateClient
+    }
+
+    private var selectedRevenueModel: RevenueModel? {
+        isPrivateClient ? .perStudent : revenueModel
+    }
+
+    private var selectedRate: Decimal? {
+        let text = selectedRevenueModel == .perStudent
+            ? ratePerStudent : fixedLessonRate
+        let normalized = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        return Decimal(string: normalized)
+    }
+
+    private var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        selectedRevenueModel != nil &&
+        selectedRate.map { $0 >= 0 } == true
     }
 
     var body: some View {
@@ -54,19 +76,23 @@ struct AddGroupView: View {
                             selection: $revenueModel
                         ) {
 
+                            Text("Select Compensation")
+                                .tag(nil as RevenueModel?)
+
                             ForEach(
                                 RevenueModel.allCases,
                                 id: \.self
                             ) { model in
 
                                 Text(model.title)
-                                    .tag(model)
+                                    .tag(model as RevenueModel?)
                             }
                         }
+                        .accessibilityIdentifier("compensationPicker")
                     }
                 }
 
-                if revenueModel == .perStudent {
+                if selectedRevenueModel == .perStudent {
 
                     Section("Rate") {
 
@@ -74,11 +100,12 @@ struct AddGroupView: View {
                             "Rate Per Student",
                             text: $ratePerStudent
                         )
+                        .accessibilityIdentifier("perStudentRateField")
                         .keyboardType(.decimalPad)
                     }
                 }
 
-                if revenueModel == .fixedPerLesson {
+                if selectedRevenueModel == .fixedPerLesson {
 
                     Section("Rate") {
 
@@ -86,6 +113,7 @@ struct AddGroupView: View {
                             "Fixed Lesson Rate",
                             text: $fixedLessonRate
                         )
+                        .accessibilityIdentifier("perLessonRateField")
                         .keyboardType(.decimalPad)
                     }
                 }
@@ -110,51 +138,50 @@ struct AddGroupView: View {
                 ) {
 
                     Button("Save") {
-
-                        let finalRevenueModel: RevenueModel =
-                            isPrivateClient
-                            ? .perStudent
-                            : revenueModel
-
-                        let group = Group(
-                            name: name,
-                            revenueModel: finalRevenueModel,
-                            organization: organization
-                        )
-
-                        if finalRevenueModel == .perStudent {
-
-                            group.ratePerStudent =
-                                Decimal(
-                                    string: ratePerStudent
-                                )
-
-                            group.fixedLessonRate = nil
-
-                        } else {
-
-                            group.fixedLessonRate =
-                                Decimal(
-                                    string: fixedLessonRate
-                                )
-
-                            group.ratePerStudent = nil
-                        }
-
-                        context.insert(group)
-
-                        try? context.save()
-
-                        dismiss()
+                        saveGroup()
                     }
-                    .disabled(
-                        name.trimmingCharacters(
-                            in: .whitespacesAndNewlines
-                        ).isEmpty
-                    )
+                    .disabled(!canSave)
                 }
             }
         }
+        .alert(
+            "Unable to Save Group",
+            isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { saveErrorMessage = nil }
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
+    }
+
+    private func saveGroup() {
+        guard let model = selectedRevenueModel,
+              let rate = selectedRate,
+              rate >= 0 else { return }
+
+        let group = Group(
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            revenueModel: model,
+            organization: organization
+        )
+
+        if model == .perStudent {
+            group.ratePerStudent = rate
+        } else {
+            group.fixedLessonRate = rate
+        }
+
+        context.insert(group)
+
+        do {
+            try context.save()
+            dismiss()
+        } catch {
+            context.rollback()
+            saveErrorMessage = error.localizedDescription
+        }
     }
 }
-

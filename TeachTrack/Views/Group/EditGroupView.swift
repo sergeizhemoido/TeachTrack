@@ -22,13 +22,13 @@ struct EditGroupView: View {
     private var name: String
 
     @State
-    private var revenueModel: RevenueModel
-
-    @State
     private var ratePerStudent: String
 
     @State
     private var fixedLessonRate: String
+
+    @State
+    private var saveErrorMessage: String?
 
     init(group: Group) {
 
@@ -36,10 +36,6 @@ struct EditGroupView: View {
 
         _name = State(
             initialValue: group.name
-        )
-
-        _revenueModel = State(
-            initialValue: group.revenueModel
         )
 
         _ratePerStudent = State(
@@ -51,6 +47,20 @@ struct EditGroupView: View {
             initialValue: group.fixedLessonRate?
                 .description ?? ""
         )
+    }
+
+    private var selectedRate: Decimal? {
+        let text = group.revenueModel == .perStudent
+            ? ratePerStudent : fixedLessonRate
+        let normalized = text
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        return Decimal(string: normalized)
+    }
+
+    private var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        selectedRate.map { $0 >= 0 } == true
     }
 
     var body: some View {
@@ -66,25 +76,10 @@ struct EditGroupView: View {
                         text: $name
                     )
 
-                    Picker(
-                        "Compensation",
-                        selection: $revenueModel
-                    ) {
-
-                        ForEach(
-                            RevenueModel.allCases,
-                            id: \.self
-                        ) { model in
-
-                            Text(
-                                model.title
-                            )
-                            .tag(model)
-                        }
-                    }
+                    LabeledContent("Compensation", value: group.revenueModel.title)
                 }
 
-                if revenueModel == .perStudent {
+                if group.revenueModel == .perStudent {
 
                     Section("Rate") {
 
@@ -96,7 +91,7 @@ struct EditGroupView: View {
                     }
                 }
 
-                if revenueModel == .fixedPerLesson {
+                if group.revenueModel == .fixedPerLesson {
 
                     Section("Rate") {
 
@@ -134,48 +129,44 @@ struct EditGroupView: View {
                 ) {
 
                     Button("Save") {
-
-                        group.name =
-                            name.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-
-                        group.revenueModel =
-                            revenueModel
-
-                        if revenueModel == .perStudent {
-
-                            group.ratePerStudent =
-                                Decimal(
-                                    string: ratePerStudent
-                                )
-
-                            group.fixedLessonRate =
-                                nil
-
-                        } else {
-
-                            group.fixedLessonRate =
-                                Decimal(
-                                    string: fixedLessonRate
-                                )
-
-                            group.ratePerStudent =
-                                nil
-                        }
-
-                        try? context.save()
-
-                        dismiss()
+                        saveGroup()
                     }
-                    .disabled(
-                        name.trimmingCharacters(
-                            in: .whitespacesAndNewlines
-                        ).isEmpty
-                    )
+                    .disabled(!canSave)
                 }
             }
         }
+        .alert(
+            "Unable to Save Group",
+            isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { saveErrorMessage = nil }
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
+    }
+
+    private func saveGroup() {
+        guard let rate = selectedRate, rate >= 0 else { return }
+
+        group.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if group.revenueModel == .perStudent {
+            group.ratePerStudent = rate
+            group.fixedLessonRate = nil
+        } else {
+            group.fixedLessonRate = rate
+            group.ratePerStudent = nil
+        }
+
+        do {
+            try context.save()
+            dismiss()
+        } catch {
+            context.rollback()
+            saveErrorMessage = error.localizedDescription
+        }
     }
 }
-

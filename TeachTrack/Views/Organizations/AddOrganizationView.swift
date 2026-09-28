@@ -48,6 +48,7 @@ struct AddOrganizationView: View {
                                 .tag(type)
                         }
                     }
+                    .accessibilityIdentifier("organizationTypePicker")
                 }
             }
             .navigationTitle("New Organization")

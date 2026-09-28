@@ -20,6 +20,9 @@ struct LessonDetailView: View {
     @State
     private var showDeleteConfirmation = false
 
+    @State
+    private var actionErrorMessage: String?
+
     var body: some View {
 
         Form {
@@ -48,18 +51,12 @@ struct LessonDetailView: View {
                 .foregroundStyle(.secondary)
             }
 
-            NavigationLink {
-
-                LessonAttendanceView(
-                    lesson: lesson
-                )
-
-            } label: {
-
-                Label(
-                    "Attendance",
-                    systemImage: "checklist"
-                )
+            if lesson.group.revenueModel == .perStudent {
+                NavigationLink {
+                    LessonAttendanceView(lesson: lesson)
+                } label: {
+                    Label("Attendance", systemImage: "checklist")
+                }
             }
         }
         .navigationTitle("Lesson")
@@ -123,9 +120,7 @@ struct LessonDetailView: View {
                 role: .destructive
             ) {
 
-                lesson.status = .cancelled
-
-                try? context.save()
+                cancelLesson()
             }
 
             Button(
@@ -151,12 +146,7 @@ struct LessonDetailView: View {
                 role: .destructive
             ) {
 
-                LessonGenerator.deleteGeneratedLesson(
-                    lesson,
-                    context: context
-                )
-
-                dismiss()
+                deleteLesson()
             }
 
             Button(
@@ -181,6 +171,38 @@ struct LessonDetailView: View {
                     "This lesson will be permanently deleted."
                 )
             }
+        }
+        .alert(
+            "Unable to Update Lesson",
+            isPresented: Binding(
+                get: { actionErrorMessage != nil },
+                set: { if !$0 { actionErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { actionErrorMessage = nil }
+        } message: {
+            Text(actionErrorMessage ?? "")
+        }
+    }
+
+    private func cancelLesson() {
+        lesson.status = .cancelled
+        do {
+            try FixedLessonBillingService.syncCharge(for: lesson, context: context)
+            try context.save()
+        } catch {
+            context.rollback()
+            actionErrorMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteLesson() {
+        do {
+            try LessonGenerator.deleteGeneratedLesson(lesson, context: context)
+            dismiss()
+        } catch {
+            context.rollback()
+            actionErrorMessage = error.localizedDescription
         }
     }
 }
