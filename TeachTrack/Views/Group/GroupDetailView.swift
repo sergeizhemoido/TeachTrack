@@ -80,12 +80,17 @@ struct GroupDetailView: View {
     var body: some View {
 
         List {
+            TeachTrackHero(
+                eyebrow: "Group",
+                title: group.name,
+                detail: group.revenueModel.title,
+                symbol: "person.3.fill",
+                color: TeachTrackDesign.sunflower
+            )
 
             // MARK: General
 
             Section("General") {
-
-                Text(group.name)
 
                 NavigationLink {
 
@@ -95,17 +100,20 @@ struct GroupDetailView: View {
 
                 } label: {
 
-                    Label(
-                        "Schedule",
-                        systemImage: "calendar"
+                    TeachTrackIconRow(
+                        title: "Schedule",
+                        detail: "Recurring lesson times",
+                        symbol: "calendar",
+                        color: TeachTrackDesign.sky
                     )
                 }
+                .accessibilityLabel("Schedule")
 
                 if let rate = group.ratePerStudent {
 
                     HStack {
 
-                        Text("Rate Per Student")
+                        Text("Lesson Rate Per Student")
 
                         Spacer()
 
@@ -117,10 +125,18 @@ struct GroupDetailView: View {
 
                     HStack {
 
-                        Text("Fixed Lesson Rate")
+                        Text("Organization Lesson Rate")
 
                         Spacer()
 
+                        Text(rate.formatted())
+                    }
+                }
+
+                if let rate = group.organizationAttendanceRate {
+                    HStack {
+                        Text("Rate Per Present Student")
+                        Spacer()
                         Text(rate.formatted())
                     }
                 }
@@ -128,7 +144,7 @@ struct GroupDetailView: View {
 
             // MARK: Students
 
-            if group.revenueModel == .perStudent {
+            if !group.isPrivate {
             Section("Students") {
 
                 if activeEnrollments.isEmpty {
@@ -251,12 +267,14 @@ struct GroupDetailView: View {
                                     systemImage: "trash"
                                 )
                             }
+                            .tint(.red)
                         }
                     }
                 }
             }
         }
 
+        .teachTrackScreen()
         .navigationTitle(
             group.name
         )
@@ -276,7 +294,7 @@ struct GroupDetailView: View {
 
                 Menu {
 
-                    if group.revenueModel == .perStudent {
+                    if !group.isPrivate {
                         Button {
                             showAddStudent = true
                         } label: {
@@ -338,7 +356,7 @@ struct GroupDetailView: View {
         .sheet(
             isPresented: $showAddStudent
         ) {
-            if group.revenueModel == .perStudent {
+            if !group.isPrivate {
                 AddEnrollmentView(group: group)
             }
         }
@@ -424,7 +442,7 @@ struct GroupDetailView: View {
             ) {
 
                 do {
-                    try FixedLessonBillingService.removeCharge(for: lesson, context: context)
+                    try LessonBillingService.ensureCanDelete(lesson, context: context)
                     context.delete(lesson)
                     try context.save()
                 } catch {

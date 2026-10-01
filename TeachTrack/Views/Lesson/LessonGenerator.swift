@@ -223,7 +223,7 @@ struct LessonGenerator {
         context: ModelContext
     ) throws {
 
-        try FixedLessonBillingService.removeCharge(for: lesson, context: context)
+        try LessonBillingService.ensureCanDelete(lesson, context: context)
 
         guard lesson.source == .generated,
               let rule = lesson.generatedFromRule

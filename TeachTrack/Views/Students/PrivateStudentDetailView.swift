@@ -24,9 +24,14 @@ struct PrivateStudentDetailView: View {
 
     var body: some View {
         List {
+            TeachTrackHero(
+                eyebrow: "Private student",
+                title: "\(student.firstName) \(student.lastName)",
+                detail: "Individual lessons and account",
+                symbol: "person.crop.circle.fill",
+                color: TeachTrackDesign.sunflower
+            )
             Section("Student") {
-                Text("\(student.firstName) \(student.lastName)")
-
                 if let phone = student.phone, !phone.isEmpty {
                     Label(phone, systemImage: "phone")
                 }
@@ -85,24 +90,13 @@ struct PrivateStudentDetailView: View {
 
             Section("Finance") {
                 NavigationLink {
-                    StudentBalanceView(student: student)
+                    AccountStatementView(student: student)
                 } label: {
-                    Label("Balance", systemImage: "dollarsign.circle")
-                }
-
-                NavigationLink {
-                    TransactionListView(student: student)
-                } label: {
-                    Label("Transactions", systemImage: "list.bullet.rectangle")
-                }
-
-                NavigationLink {
-                    AddPaymentView(student: student)
-                } label: {
-                    Label("Add Payment", systemImage: "plus.circle")
+                    Label("Account and History", systemImage: "dollarsign.circle")
                 }
             }
         }
+        .teachTrackScreen()
         .navigationTitle("\(student.firstName) \(student.lastName)")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {

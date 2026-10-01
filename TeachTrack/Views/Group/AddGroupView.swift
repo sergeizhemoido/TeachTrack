@@ -31,6 +31,9 @@ struct AddGroupView: View {
     private var fixedLessonRate = ""
 
     @State
+    private var organizationAttendanceRate = ""
+
+    @State
     private var saveErrorMessage: String?
 
     private var isPrivateClient: Bool {
@@ -42,8 +45,17 @@ struct AddGroupView: View {
     }
 
     private var selectedRate: Decimal? {
-        let text = selectedRevenueModel == .perStudent
-            ? ratePerStudent : fixedLessonRate
+        let text: String
+        switch selectedRevenueModel {
+        case .perStudent:
+            text = ratePerStudent
+        case .fixedPerLesson:
+            text = fixedLessonRate
+        case .organizationPerAttendee:
+            text = organizationAttendanceRate
+        case nil:
+            return nil
+        }
         let normalized = text
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: ",", with: ".")
@@ -72,11 +84,11 @@ struct AddGroupView: View {
                     if !isPrivateClient {
 
                         Picker(
-                            "Compensation",
+                            "Payment Method",
                             selection: $revenueModel
                         ) {
 
-                            Text("Select Compensation")
+                            Text("Select Payer")
                                 .tag(nil as RevenueModel?)
 
                             ForEach(
@@ -97,7 +109,7 @@ struct AddGroupView: View {
                     Section("Rate") {
 
                         TextField(
-                            "Rate Per Student",
+                            "Lesson Rate Per Student",
                             text: $ratePerStudent
                         )
                         .accessibilityIdentifier("perStudentRateField")
@@ -110,15 +122,27 @@ struct AddGroupView: View {
                     Section("Rate") {
 
                         TextField(
-                            "Fixed Lesson Rate",
+                            "Organization Lesson Rate",
                             text: $fixedLessonRate
                         )
                         .accessibilityIdentifier("perLessonRateField")
                         .keyboardType(.decimalPad)
                     }
                 }
+
+                if selectedRevenueModel == .organizationPerAttendee {
+                    Section("Rate") {
+                        TextField(
+                            "Rate Per Present Student",
+                            text: $organizationAttendanceRate
+                        )
+                        .accessibilityIdentifier("organizationAttendanceRateField")
+                        .keyboardType(.decimalPad)
+                    }
+                }
             }
 
+            .teachTrackScreen()
             .navigationTitle("New Group")
             .navigationBarTitleDisplayMode(.inline)
 
@@ -168,10 +192,13 @@ struct AddGroupView: View {
             organization: organization
         )
 
-        if model == .perStudent {
+        switch model {
+        case .perStudent:
             group.ratePerStudent = rate
-        } else {
+        case .fixedPerLesson:
             group.fixedLessonRate = rate
+        case .organizationPerAttendee:
+            group.organizationAttendanceRate = rate
         }
 
         context.insert(group)

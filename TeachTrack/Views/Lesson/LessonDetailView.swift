@@ -11,6 +11,8 @@ struct LessonDetailView: View {
     @Environment(\.modelContext)
     private var context
 
+    @Query private var transactions: [Transaction]
+
     @State
     private var showEditLesson = false
 
@@ -23,9 +25,22 @@ struct LessonDetailView: View {
     @State
     private var actionErrorMessage: String?
 
+    private var lessonCharge: Decimal {
+        transactions.filter {
+            $0.type == .charge && $0.lesson?.uuid == lesson.uuid
+        }.reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
     var body: some View {
 
         Form {
+            TeachTrackHero(
+                eyebrow: "Lesson · \(lesson.status.rawValue.capitalized)",
+                title: lesson.group.name,
+                detail: lesson.startDate.formatted(date: .abbreviated, time: .shortened),
+                symbol: "calendar.badge.clock",
+                color: TeachTrackDesign.sky
+            )
 
             Section("Lesson") {
 
@@ -51,14 +66,37 @@ struct LessonDetailView: View {
                 .foregroundStyle(.secondary)
             }
 
-            if lesson.group.revenueModel == .perStudent {
+            if !lesson.group.isPrivate || lesson.group.revenueModel == .perStudent {
                 NavigationLink {
                     LessonAttendanceView(lesson: lesson)
                 } label: {
                     Label("Attendance", systemImage: "checklist")
                 }
             }
+
+            Section("Attendance History") {
+                if lesson.attendances.isEmpty {
+                    Text("No attendance marked")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(lesson.attendances, id: \.uuid) { attendance in
+                    LabeledContent(
+                        "\(attendance.student.lastName) \(attendance.student.firstName)",
+                        value: attendance.status.title
+                    )
+                }
+            }
+
+            Section("Billing") {
+                LabeledContent("Lesson Charges", value: lessonCharge.formatted())
+                if lesson.status == .planned {
+                    Text("Mark every student's attendance, then set the lesson to completed or cancelled.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
+        .teachTrackScreen()
         .navigationTitle("Lesson")
         .toolbar {
 
@@ -188,7 +226,7 @@ struct LessonDetailView: View {
     private func cancelLesson() {
         lesson.status = .cancelled
         do {
-            try FixedLessonBillingService.syncCharge(for: lesson, context: context)
+            try LessonBillingService.syncCharge(for: lesson, context: context)
             try context.save()
         } catch {
             context.rollback()

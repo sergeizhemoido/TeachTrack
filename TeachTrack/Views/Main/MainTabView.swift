@@ -72,6 +72,9 @@ struct MainTabView: View {
                 )
             }
         }
+        .tint(TeachTrackDesign.accent)
+        .toolbarBackground(TeachTrackDesign.surface, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
     }
 }
 

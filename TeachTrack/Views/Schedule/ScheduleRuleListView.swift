@@ -122,11 +122,13 @@ struct ScheduleRuleListView: View {
                                 systemImage: "trash"
                             )
                         }
+                        .tint(.red)
                     }
                 }
             }
         }
 
+        .teachTrackScreen()
         .navigationTitle("Schedule")
 
         .toolbar {

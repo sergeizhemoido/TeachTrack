@@ -41,6 +41,7 @@ struct AddLessonView: View {
                     step: 15
                 )
             }
+            .teachTrackScreen()
             .navigationTitle(
                 "New Lesson"
             )

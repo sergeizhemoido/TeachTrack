@@ -20,7 +20,10 @@ final class StudentService {
     func createStudent(
         firstName: String,
         lastName: String,
-        studentType: StudentType
+        studentType: StudentType,
+        phone: String? = nil,
+        email: String? = nil,
+        notes: String? = nil
     ) throws {
 
         let student = Student(
@@ -28,6 +31,10 @@ final class StudentService {
             lastName: lastName,
             studentType: studentType
         )
+
+        student.phone = phone
+        student.email = email
+        student.notes = notes
 
         context.insert(student)
 
@@ -47,4 +54,3 @@ final class StudentService {
         try context.save()
     }
 }
-

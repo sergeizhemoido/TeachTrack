@@ -23,6 +23,9 @@ final class Attendance {
 
     var notes: String?
 
+    @Relationship(deleteRule: .cascade, inverse: \AttendanceRevision.attendance)
+    var revisions: [AttendanceRevision] = []
+
     init(
         student: Student,
         lesson: Lesson,

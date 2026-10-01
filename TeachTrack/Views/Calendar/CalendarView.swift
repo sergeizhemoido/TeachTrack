@@ -151,6 +151,13 @@ struct CalendarView: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
+            .background {
+                LinearGradient(
+                    colors: [TeachTrackDesign.sky.opacity(0.20), TeachTrackDesign.violet.opacity(0.10)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            }
 
             let weekdays =
                 calendar.shortStandaloneWeekdaySymbols
@@ -179,6 +186,7 @@ struct CalendarView: View {
                 }
             }
             .padding(.horizontal)
+            .background(TeachTrackDesign.sky.opacity(0.07))
 
             LazyVGrid(
                 columns: Array(
@@ -228,6 +236,8 @@ struct CalendarView: View {
             }
             .padding(.horizontal)
             .padding(.top, 8)
+            .padding(.bottom, 12)
+            .background(TeachTrackDesign.sky.opacity(0.07))
 
             Divider()
                 .padding(.top, 8)
@@ -322,7 +332,10 @@ struct CalendarView: View {
                     )
                 }
             }
+            .teachTrackScreen()
         }
+
+        .background(TeachTrackDesign.canvas)
 
         .navigationTitle("Calendar")
 
@@ -435,7 +448,7 @@ private struct DayCell: View {
                     if isSelected {
 
                         Circle()
-                            .fill(.tint)
+                            .fill(TeachTrackDesign.blue)
 
                     } else if isToday {
 
@@ -463,7 +476,7 @@ private struct DayCell: View {
                     ) { _ in
 
                         Circle()
-                            .fill(.tint)
+                            .fill(TeachTrackDesign.amber)
                             .frame(
                                 width: 4,
                                 height: 4

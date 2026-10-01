@@ -86,6 +86,7 @@ struct LessonListView: View {
                 }
             }
         }
+        .teachTrackScreen()
         .navigationTitle("Lessons")
         .toolbar {
 
@@ -128,7 +129,7 @@ struct LessonListView: View {
 
                 lesson.status = .cancelled
                 do {
-                    try FixedLessonBillingService.syncCharge(for: lesson, context: context)
+                    try LessonBillingService.syncCharge(for: lesson, context: context)
                     try context.save()
                 } catch {
                     context.rollback()

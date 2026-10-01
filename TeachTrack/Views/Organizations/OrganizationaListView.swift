@@ -30,6 +30,23 @@ struct OrganizationsListView: View {
         NavigationStack {
 
             List {
+                TeachTrackHero(
+                    eyebrow: "Workspace",
+                    title: "Your organizations",
+                    detail: "Manage schools, private clients, and their groups in one place.",
+                    symbol: "building.2.fill",
+                    color: TeachTrackDesign.sunflower
+                )
+
+                if activeOrganizations.isEmpty {
+                    TeachTrackEmptyState(
+                        title: "No organizations yet",
+                        detail: "Use the + button to create your first organization.",
+                        symbol: "building.2.fill",
+                        color: TeachTrackDesign.blue
+                    )
+                } else {
+                Section("Organizations · \(activeOrganizations.count)") {
                 ForEach(
                     activeOrganizations
                 ) { organization in
@@ -38,20 +55,12 @@ struct OrganizationsListView: View {
                             organization: organization
                         )
                     } label: {
-                        VStack(
-                            alignment: .leading
-                        ) {
-                            Text(
-                                organization.name
-                            )
-                            Text(
-                                organization.type.title
-                            )
-                            .font(.caption)
-                            .foregroundStyle(
-                                .secondary
-                            )
-                        }
+                        TeachTrackIconRow(
+                            title: organization.name,
+                            detail: organization.type.title,
+                            symbol: organization.type.displaySymbol,
+                            color: organization.type.displayColor
+                        )
                     }
                     .accessibilityIdentifier("organizationRow-\(organization.name)")
                     
@@ -61,13 +70,18 @@ struct OrganizationsListView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            .tint(.red)
                     }
                     
                 }
+                }
+                }
             }
+            .teachTrackScreen()
             .navigationTitle(
                 "Organizations"
             )
+            .navigationBarTitleDisplayMode(.inline)
             .task {
                 loadOrganizations()
             }

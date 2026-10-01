@@ -21,6 +21,7 @@ final class Lesson {
     var generatedFromRule: ScheduleRule?
     var isManuallyModified: Bool
     var notes: String?
+    var billedRate: Decimal?
 
     @Relationship(
         deleteRule: .cascade,
@@ -48,5 +49,6 @@ final class Lesson {
         self.source = source
         self.generatedFromRule = nil
         self.isManuallyModified = false
+        self.billedRate = nil
     }
 }

@@ -25,6 +25,14 @@ final class Contact {
 
     var notes: String?
 
+    var displayName: String {
+        if !name.isEmpty { return name }
+        if !relationship.isEmpty { return relationship }
+        if let phone, !phone.isEmpty { return phone }
+        if let email, !email.isEmpty { return email }
+        return "Contact"
+    }
+
     init(
         student: Student,
         name: String,

@@ -32,23 +32,13 @@ struct StudentDetailView: View {
     var body: some View {
 
         Form {
-
-            Section("Student") {
-
-                Text(
-                    "\(student.firstName) \(student.lastName)"
-                )
-
-        //        if let phone = student.phone {
-
-        //            Text(phone)
-        //        }
-
-        //        if let email = student.email {
-
-        //            Text(email)
-        //        }
-            }
+            TeachTrackHero(
+                eyebrow: "Student profile",
+                title: "\(student.firstName) \(student.lastName)",
+                detail: student.studentType.title,
+                symbol: "person.crop.circle.fill",
+                color: student.studentType == .privateClient ? TeachTrackDesign.violet : TeachTrackDesign.studentGreen
+            )
 
             if !privateGroups.isEmpty {
 
@@ -115,59 +105,36 @@ struct StudentDetailView: View {
 
                 } label: {
 
-                    Label(
-                        "Contacts",
-                        systemImage: "person.2"
+                    TeachTrackIconRow(
+                        title: "Contacts",
+                        detail: "Phone, email, and relatives",
+                        symbol: "person.2"
                     )
                 }
+                .accessibilityLabel("Contacts")
             }
 
             Section("Finance") {
 
                 NavigationLink {
 
-                    StudentBalanceView(
+                    AccountStatementView(
                         student: student
                     )
 
                 } label: {
 
-                    Label(
-                        "Balance",
-                        systemImage: "dollarsign.circle"
+                    TeachTrackIconRow(
+                        title: "Account and History",
+                        detail: "Balance and transaction history",
+                        symbol: "dollarsign.circle"
                     )
                 }
-
-                NavigationLink {
-
-                    TransactionListView(
-                        student: student
-                    )
-
-                } label: {
-
-                    Label(
-                        "Transactions",
-                        systemImage: "list.bullet.rectangle"
-                    )
-                }
-
-                NavigationLink {
-
-                    AddPaymentView(
-                        student: student
-                    )
-
-                } label: {
-
-                    Label(
-                        "Add Payment",
-                        systemImage: "plus.circle"
-                    )
-                }
+                .accessibilityLabel("Account and History")
             }
         }
 
+        .teachTrackScreen()
         .navigationTitle(
             "\(student.firstName) \(student.lastName)"
         )

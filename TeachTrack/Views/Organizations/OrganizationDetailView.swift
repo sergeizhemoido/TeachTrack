@@ -39,14 +39,13 @@ struct OrganizationDetailView: View {
     var body: some View {
 
         List {
-
-            Section("Organization") {
-
-                Text(organization.name)
-
-                Text(organization.type.title)
-                    .foregroundStyle(.secondary)
-            }
+            TeachTrackHero(
+                eyebrow: "Organization",
+                title: organization.name,
+                detail: organization.type.title,
+                symbol: organization.type.displaySymbol,
+                color: TeachTrackDesign.sunflower
+            )
 
             Section(organization.type == .privateClient ? "Students" : "Groups") {
 
@@ -68,13 +67,12 @@ struct OrganizationDetailView: View {
 
                     } label: {
 
-                        VStack(
-                            alignment: .leading
-                        ) {
-
-                            Text(group.name)
-
-                        }
+                        TeachTrackIconRow(
+                            title: group.name,
+                            detail: organization.type == .privateClient ? "Private student" : group.revenueModel.title,
+                            symbol: organization.type == .privateClient ? "person.crop.circle.fill" : "person.3.fill",
+                            color: organization.type == .privateClient ? TeachTrackDesign.violet : TeachTrackDesign.coral
+                        )
                     }
                     .accessibilityIdentifier("groupRow-\(group.name)")
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -83,11 +81,27 @@ struct OrganizationDetailView: View {
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .tint(.red)
                     }
                 }
             }
+
+            Section("Finance") {
+                NavigationLink {
+                    AccountStatementView(organization: organization)
+                } label: {
+                    TeachTrackIconRow(
+                        title: "Account and History",
+                        detail: "Balance, payments, and deposits",
+                        symbol: "dollarsign.circle",
+                        color: TeachTrackDesign.amber
+                    )
+                }
+                .accessibilityLabel("Account and History")
+            }
         }
 
+        .teachTrackScreen()
         .navigationTitle(organization.name)
         .navigationBarTitleDisplayMode(.inline)
 

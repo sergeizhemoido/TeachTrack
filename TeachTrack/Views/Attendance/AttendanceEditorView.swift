@@ -28,6 +28,9 @@ struct AttendanceEditorView: View {
     @State
     private var notes = ""
 
+    @State
+    private var saveErrorMessage: String?
+
     private var existingAttendance: Attendance? {
 
         attendances.first {
@@ -78,7 +81,23 @@ struct AttendanceEditorView: View {
                     axis: .vertical
                 )
             }
+
+            if let attendance = existingAttendance, !attendance.revisions.isEmpty {
+                Section("Change History") {
+                    ForEach(attendance.revisions.sorted {
+                        $0.recordedAt > $1.recordedAt
+                    }, id: \.uuid) { revision in
+                        VStack(alignment: .leading) {
+                            Text(revision.status.title)
+                            Text(revision.recordedAt, format: .dateTime)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
         }
+        .teachTrackScreen()
         .navigationTitle(
             "Attendance"
         )
@@ -111,12 +130,23 @@ struct AttendanceEditorView: View {
                 }
             }
         }
+        .alert("Unable to Save Attendance", isPresented: Binding(
+            get: { saveErrorMessage != nil },
+            set: { if !$0 { saveErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { saveErrorMessage = nil }
+        } message: {
+            Text(saveErrorMessage ?? "")
+        }
     }
 
     private func saveAttendance() {
 
-        if let attendance =
-            existingAttendance {
+        let attendance: Attendance
+
+        if let existing = existingAttendance {
+
+            attendance = existing
 
             attendance.status =
                 selectedStatus
@@ -128,7 +158,7 @@ struct AttendanceEditorView: View {
 
         } else {
 
-            let attendance =
+            attendance =
                 Attendance(
                     student: student,
                     lesson: lesson,
@@ -145,9 +175,22 @@ struct AttendanceEditorView: View {
             )
         }
 
-        try? context.save()
+        context.insert(AttendanceRevision(
+            attendance: attendance,
+            status: selectedStatus,
+            notes: notes.isEmpty ? nil : notes
+        ))
 
-        dismiss()
+        do {
+            if lesson.status == .completed {
+                try LessonBillingService.syncCharge(for: lesson, context: context)
+            }
+            try context.save()
+            dismiss()
+        } catch {
+            context.rollback()
+            saveErrorMessage = error.localizedDescription
+        }
     }
 }
 
@@ -185,7 +228,8 @@ struct AttendanceEditorView: View {
             Group.self,
             Lesson.self,
             Student.self,
-            Attendance.self
+            Attendance.self,
+            AttendanceRevision.self
         ],
         inMemory: true
     )

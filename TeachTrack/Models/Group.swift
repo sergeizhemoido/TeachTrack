@@ -16,9 +16,14 @@ final class Group {
     var name: String
     private(set) var revenueModel: RevenueModel
     var fixedLessonRate: Decimal?
+    var organizationAttendanceRate: Decimal?
     var ratePerStudent: Decimal?
     var notes: String?
     var isActive: Bool
+
+    var isPrivate: Bool {
+        organization?.type == .privateClient
+    }
 
     var organization: Organization?
 

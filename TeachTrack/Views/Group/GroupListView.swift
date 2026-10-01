@@ -73,9 +73,11 @@ struct GroupListView: View {
                             systemImage: "trash"
                         )
                     }
+                    .tint(.red)
                 }
             }
         }
+        .teachTrackScreen()
         .confirmationDialog(
             "Delete Group?",
             isPresented: Binding(

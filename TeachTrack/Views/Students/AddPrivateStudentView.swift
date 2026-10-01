@@ -30,6 +30,9 @@ struct AddPrivateStudentView: View {
     @State
     private var email = ""
 
+    @State private var notes = ""
+    @State private var saveError: String?
+
     @State
     private var lessonPrice = ""
 
@@ -51,18 +54,15 @@ struct AddPrivateStudentView: View {
                         text: $lastName
                     )
 
-             //       TextField(
-             //           "Phone",
-             //           text: $phone
-             //       )
-             //       .keyboardType(.phonePad)
+                }
 
-             //       TextField(
-             //           "Email",
-             //           text: $email
-             //       )
-             //       .keyboardType(.emailAddress)
-             //       .textInputAutocapitalization(.never)
+                Section("Contact") {
+                    TextField("Phone", text: $phone)
+                        .keyboardType(.phonePad)
+                    TextField("Email", text: $email)
+                        .keyboardType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                    TextField("Notes", text: $notes, axis: .vertical)
                 }
 
                 Section("Lesson") {
@@ -75,6 +75,7 @@ struct AddPrivateStudentView: View {
                 }
             }
 
+            .teachTrackScreen()
             .navigationTitle("New Private Student")
             .navigationBarTitleDisplayMode(.inline)
 
@@ -111,6 +112,14 @@ struct AddPrivateStudentView: View {
                     )
                 }
             }
+            .alert("Could Not Save Student", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK") { saveError = nil }
+            } message: {
+                Text(saveError ?? "Unknown error")
+            }
         }
     }
 
@@ -137,15 +146,9 @@ struct AddPrivateStudentView: View {
             studentType: .privateClient
         )
 
-        student.phone =
-            phone.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
-
-        student.email =
-            email.trimmingCharacters(
-                in: .whitespacesAndNewlines
-            )
+        student.phone = optionalValue(phone)
+        student.email = optionalValue(email)
+        student.notes = optionalValue(notes)
 
         // Each private student gets an individual group.
         // The group belongs to the selected Private Client organization.
@@ -174,11 +177,12 @@ struct AddPrivateStudentView: View {
             dismiss()
 
         } catch {
-
-            print(
-                "Failed to save private student: \(error)"
-            )
+            saveError = error.localizedDescription
         }
     }
-}
 
+    private func optionalValue(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}

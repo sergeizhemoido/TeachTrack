@@ -35,6 +35,7 @@ extension OrganizationType {
 enum RevenueModel: String, Codable, CaseIterable, Identifiable {
     case perStudent
     case fixedPerLesson
+    case organizationPerAttendee
 
     var id: String { rawValue }
 }
@@ -44,9 +45,11 @@ extension RevenueModel {
     var title: String {
         switch self {
         case .perStudent:
-            return "Per Student"
+            return "Each Student"
         case .fixedPerLesson:
-            return "Fixed Per Lesson"
+            return "Organization: Fixed Per Lesson"
+        case .organizationPerAttendee:
+            return "Organization: Per Present Student"
         }
     }
 }
@@ -126,6 +129,7 @@ enum TransactionType: String, Codable, CaseIterable, Identifiable {
 
     case charge
     case payment
+    case deposit
     case adjustment
     case refund
 

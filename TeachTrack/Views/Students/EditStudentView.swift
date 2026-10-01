@@ -23,6 +23,9 @@ struct EditStudentView: View {
     @State
     private var email: String
 
+    @State private var notes: String
+    @State private var saveError: String?
+
     init(student: Student) {
         self.student = student
 
@@ -41,6 +44,8 @@ struct EditStudentView: View {
         _email = State(
             initialValue: student.email ?? ""
         )
+
+        _notes = State(initialValue: student.notes ?? "")
     }
 
     var body: some View {
@@ -60,7 +65,9 @@ struct EditStudentView: View {
                         "Last Name",
                         text: $lastName
                     )
+                }
 
+                Section("Contact") {
                     TextField(
                         "Phone",
                         text: $phone
@@ -72,8 +79,12 @@ struct EditStudentView: View {
                         text: $email
                     )
                     .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+
+                    TextField("Notes", text: $notes, axis: .vertical)
                 }
             }
+            .teachTrackScreen()
             .navigationTitle("Edit Student")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -89,28 +100,7 @@ struct EditStudentView: View {
                 ToolbarItem(
                     placement: .confirmationAction
                 ) {
-                    Button("Save") {
-
-                        student.firstName =
-                            firstName.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-
-                        student.lastName =
-                            lastName.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-
-                        student.phone =
-                            phone.isEmpty ? nil : phone
-
-                        student.email =
-                            email.isEmpty ? nil : email
-
-                        try? context.save()
-
-                        dismiss()
-                    }
+                    Button("Save") { save() }
                     .disabled(
                         firstName.trimmingCharacters(
                             in: .whitespacesAndNewlines
@@ -121,6 +111,33 @@ struct EditStudentView: View {
                     )
                 }
             }
+            .alert("Could Not Save Student", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK") { saveError = nil }
+            } message: {
+                Text(saveError ?? "Unknown error")
+            }
+        }
+    }
+
+    private func optionalValue(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func save() {
+        student.firstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        student.lastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        student.phone = optionalValue(phone)
+        student.email = optionalValue(email)
+        student.notes = optionalValue(notes)
+        do {
+            try context.save()
+            dismiss()
+        } catch {
+            saveError = error.localizedDescription
         }
     }
 }

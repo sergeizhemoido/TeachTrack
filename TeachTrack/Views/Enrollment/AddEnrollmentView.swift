@@ -105,6 +105,7 @@ struct AddEnrollmentView: View {
                 }
             }
 
+            .teachTrackScreen()
             .navigationTitle("Add Student")
             .navigationBarTitleDisplayMode(.inline)
 

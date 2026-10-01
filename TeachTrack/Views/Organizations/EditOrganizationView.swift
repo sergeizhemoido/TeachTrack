@@ -78,7 +78,7 @@ struct EditOrganizationView: View {
                             selection: $type
                         ) {
                             ForEach(OrganizationType.allCases) { type in
-                                Text(type.title)
+                                Label(type.title, systemImage: type.displaySymbol)
                                     .tag(type)
                             }
                         }
@@ -97,6 +97,7 @@ struct EditOrganizationView: View {
                 }
             }
 
+            .teachTrackScreen()
             .navigationTitle(
                 "Edit Organization"
             )

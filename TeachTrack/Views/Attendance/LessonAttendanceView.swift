@@ -23,7 +23,8 @@ struct LessonAttendanceView: View {
 
             &&
 
-            $0.isActive
+            $0.enrollmentDate <= lesson.endDate &&
+            ($0.endDate == nil || $0.endDate! >= lesson.startDate)
         }
     }
 
@@ -45,17 +46,21 @@ struct LessonAttendanceView: View {
                 
                 } label: {
 
-                        Text(
-                            "\(enrollment.student.lastName) \(enrollment.student.firstName)"
-                        )                    
+                        HStack {
+                            Text("\(enrollment.student.lastName) \(enrollment.student.firstName)")
+                            Spacer()
+                            Text(lesson.attendances.first(where: {
+                                $0.student.uuid == enrollment.student.uuid
+                            })?.status.title ?? "Not marked")
+                                .foregroundStyle(.secondary)
+                        }
                 }
             }
         }
+        .teachTrackScreen()
         .navigationTitle(
             "Attendance"
         )
     }
 }
-
-
 

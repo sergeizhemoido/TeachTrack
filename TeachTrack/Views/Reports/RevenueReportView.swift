@@ -9,14 +9,24 @@ import SwiftData
 
 struct RevenueReportView: View {
 
+    let range: ReportDateRange?
+
+    init(range: ReportDateRange? = nil) {
+        self.range = range
+    }
+
     @Query
     private var transactions: [Transaction]
 
-    private var totalRevenue: Decimal {
+    private var periodTransactions: [Transaction] {
+        transactions.filter { range?.contains($0.date) ?? true }
+    }
 
-        transactions
+    private var earnedRevenue: Decimal {
+
+        periodTransactions
             .filter {
-                $0.type == .payment
+                $0.type == .charge
             }
             .reduce(
                 Decimal.zero
@@ -25,21 +35,33 @@ struct RevenueReportView: View {
             }
     }
 
+    private var received: Decimal {
+        periodTransactions.filter { $0.type == .payment || $0.type == .deposit }
+            .reduce(Decimal.zero) { $0 + $1.amount }
+    }
+
     var body: some View {
 
         Form {
 
             HStack {
 
-                Text("Total Revenue")
+                Text("Earned from Lessons")
 
                 Spacer()
 
                 Text(
-                    totalRevenue.formatted()
+                    earnedRevenue.formatted()
                 )
             }
+
+            HStack {
+                Text("Payments and Deposits Received")
+                Spacer()
+                Text(received.formatted())
+            }
         }
+        .teachTrackScreen()
         .navigationTitle("Revenue")
     }
 }

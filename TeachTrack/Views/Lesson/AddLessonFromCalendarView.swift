@@ -113,6 +113,7 @@ struct AddLessonFromCalendarView: View {
                 }
             }
 
+            .teachTrackScreen()
             .navigationTitle("New Lesson")
             .navigationBarTitleDisplayMode(.inline)
 

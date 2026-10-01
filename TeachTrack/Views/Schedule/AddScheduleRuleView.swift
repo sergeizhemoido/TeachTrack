@@ -68,6 +68,7 @@ struct AddScheduleRuleView: View {
                     step: 15
                 )
             }
+            .teachTrackScreen()
             .navigationTitle("New Schedule")
             .navigationBarTitleDisplayMode(.inline)
        

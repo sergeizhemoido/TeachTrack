@@ -33,6 +33,23 @@ struct StudentListView: View {
     var body: some View {
 
         List {
+            TeachTrackHero(
+                eyebrow: "People",
+                title: "Student directory",
+                detail: "Contact details, enrollments, lessons, and accounts at a glance.",
+                symbol: "person.3.sequence",
+                color: TeachTrackDesign.sunflower
+            )
+
+            if students.isEmpty {
+                TeachTrackEmptyState(
+                    title: "No students yet",
+                    detail: "Use the add button to create a student profile.",
+                    symbol: "person.crop.circle.badge.plus",
+                    color: TeachTrackDesign.studentGreen
+                )
+            } else {
+            Section("Students · \(students.count)") {
 
             ForEach(
                 students,
@@ -47,20 +64,12 @@ struct StudentListView: View {
 
                 } label: {
 
-                    VStack(
-                        alignment: .leading
-                    ) {
-
-                        Text(
-                            "\(student.lastName) \(student.firstName)"
-                        )
-
-                        Text(
-                            student.studentType.title
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
+                    TeachTrackIconRow(
+                        title: "\(student.lastName) \(student.firstName)",
+                        detail: student.studentType.title,
+                        symbol: student.studentType == .privateClient ? "person.crop.circle.fill" : "person.crop.circle",
+                        color: student.studentType == .privateClient ? TeachTrackDesign.violet : TeachTrackDesign.studentGreen
+                    )
                 }
                 .swipeActions(
                     edge: .trailing,
@@ -78,11 +87,16 @@ struct StudentListView: View {
                             systemImage: "trash"
                         )
                     }
+                    .tint(.red)
                 }
             }
+            }
+            }
         }
+        .teachTrackScreen()
 
         .navigationTitle("Students")
+        .navigationBarTitleDisplayMode(.inline)
 
         .toolbar {
 

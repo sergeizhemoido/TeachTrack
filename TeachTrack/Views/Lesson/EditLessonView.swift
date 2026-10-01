@@ -84,6 +84,7 @@ struct EditLessonView: View {
                     .accessibilityIdentifier("lessonStatusPicker")
                 }
             }
+            .teachTrackScreen()
             .navigationTitle("Edit Lesson")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -132,7 +133,7 @@ struct EditLessonView: View {
         }
 
         do {
-            try FixedLessonBillingService.syncCharge(for: lesson, context: context)
+            try LessonBillingService.syncCharge(for: lesson, context: context)
             try context.save()
             dismiss()
         } catch {

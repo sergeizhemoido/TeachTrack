@@ -93,6 +93,7 @@ struct EditScheduleRuleView: View {
                 }
             }
 
+            .teachTrackScreen()
             .navigationTitle("Edit Schedule")
             .navigationBarTitleDisplayMode(.inline)
 

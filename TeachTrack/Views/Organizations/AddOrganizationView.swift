@@ -44,13 +44,14 @@ struct AddOrganizationView: View {
                             OrganizationType.allCases
                         ) { type in
 
-                            Text(type.title)
+                            Label(type.title, systemImage: type.displaySymbol)
                                 .tag(type)
                         }
                     }
                     .accessibilityIdentifier("organizationTypePicker")
                 }
             }
+            .teachTrackScreen()
             .navigationTitle("New Organization")
             .navigationBarTitleDisplayMode(.inline)
 

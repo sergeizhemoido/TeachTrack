@@ -33,6 +33,14 @@ struct EditContactView: View {
     @State
     private var notes: String
 
+    @State private var saveError: String?
+
+    private var hasContent: Bool {
+        [name, relationship, phone, email, notes].contains {
+            !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+
     init(contact: Contact) {
 
         self.contact = contact
@@ -67,7 +75,7 @@ struct EditContactView: View {
                 Section("Contact") {
 
                     TextField(
-                        "Name",
+                        "Relative / Contact Name",
                         text: $name
                     )
 
@@ -87,6 +95,7 @@ struct EditContactView: View {
                         text: $email
                     )
                     .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
 
                     TextField(
                         "Notes",
@@ -95,6 +104,7 @@ struct EditContactView: View {
                     )
                 }
             }
+            .teachTrackScreen()
             .navigationTitle("Edit Contact")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -112,38 +122,37 @@ struct EditContactView: View {
                     placement: .confirmationAction
                 ) {
 
-                    Button("Save") {
-
-                        contact.name =
-                            name.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-
-                        contact.relationship =
-                            relationship.trimmingCharacters(
-                                in: .whitespacesAndNewlines
-                            )
-
-                        contact.phone =
-                            phone.isEmpty ? nil : phone
-
-                        contact.email =
-                            email.isEmpty ? nil : email
-
-                        contact.notes =
-                            notes.isEmpty ? nil : notes
-
-                        try? context.save()
-
-                        dismiss()
-                    }
-                    .disabled(
-                        name.trimmingCharacters(
-                            in: .whitespacesAndNewlines
-                        ).isEmpty
-                    )
+                    Button("Save") { save() }
+                        .disabled(!hasContent)
                 }
             }
+            .alert("Could Not Save Contact", isPresented: Binding(
+                get: { saveError != nil },
+                set: { if !$0 { saveError = nil } }
+            )) {
+                Button("OK") { saveError = nil }
+            } message: {
+                Text(saveError ?? "Unknown error")
+            }
+        }
+    }
+
+    private func optionalValue(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func save() {
+        contact.name = optionalValue(name) ?? ""
+        contact.relationship = optionalValue(relationship) ?? ""
+        contact.phone = optionalValue(phone)
+        contact.email = optionalValue(email)
+        contact.notes = optionalValue(notes)
+        do {
+            try context.save()
+            dismiss()
+        } catch {
+            saveError = error.localizedDescription
         }
     }
 }
