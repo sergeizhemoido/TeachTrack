@@ -17,12 +17,13 @@ struct StudentDetailView: View {
     @State
     private var showDeleteConfirmation = false
 
-    private var privateGroups: [Group] {
+    @State private var archiveErrorMessage: String?
+
+    private var activeGroups: [Group] {
         student.enrollments
             .filter {
                 $0.isActive &&
-                $0.group.isActive &&
-                $0.group.organization == nil
+                $0.group.isActive
             }
             .map {
                 $0.group
@@ -40,12 +41,12 @@ struct StudentDetailView: View {
                 color: student.studentType == .privateClient ? TeachTrackDesign.violet : TeachTrackDesign.studentGreen
             )
 
-            if !privateGroups.isEmpty {
+            if !activeGroups.isEmpty {
 
-                Section("Private Lessons") {
+                Section("Groups") {
 
                     ForEach(
-                        privateGroups,
+                        activeGroups,
                         id: \.uuid
                     ) { group in
 
@@ -70,7 +71,7 @@ struct StudentDetailView: View {
                                    let rate = group.ratePerStudent {
 
                                     Text(
-                                        verbatim: "Lesson price: \(rate)"
+                                        verbatim: "Future lesson rate: \(rate.moneyFormatted)"
                                     )
                                     .font(.caption)
                                     .foregroundStyle(
@@ -82,7 +83,7 @@ struct StudentDetailView: View {
                                     let rate = group.fixedLessonRate {
 
                                     Text(
-                                        verbatim: "Lesson price: \(rate)"
+                                        verbatim: "Lesson price: \(rate.moneyFormatted)"
                                     )
                                     .font(.caption)
                                     .foregroundStyle(
@@ -184,9 +185,13 @@ struct StudentDetailView: View {
                 role: .destructive
             ) {
 
-                student.isActive = false
-
-                try? context.save()
+                do {
+                    try StudentService(context: context).archiveStudent(student)
+                    dismiss()
+                } catch {
+                    context.rollback()
+                    archiveErrorMessage = error.localizedDescription
+                }
             }
 
             Button(
@@ -200,6 +205,14 @@ struct StudentDetailView: View {
             Text(
                 "Are you sure you want to delete \(student.firstName) \(student.lastName)?"
             )
+        }
+        .alert("Unable to Delete Student", isPresented: Binding(
+            get: { archiveErrorMessage != nil },
+            set: { if !$0 { archiveErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { archiveErrorMessage = nil }
+        } message: {
+            Text(archiveErrorMessage ?? "")
         }
     }
 }

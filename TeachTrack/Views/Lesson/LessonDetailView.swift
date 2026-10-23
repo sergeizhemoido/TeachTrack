@@ -31,6 +31,26 @@ struct LessonDetailView: View {
         }.reduce(Decimal.zero) { $0 + $1.amount }
     }
 
+    private var lessonRate: Decimal? {
+        switch lesson.group.revenueModel {
+        case .perStudent:
+            return lesson.billedRate ?? lesson.group.ratePerStudent
+        case .fixedPerLesson:
+            return lesson.billedRate ?? lesson.group.fixedLessonRate
+        case .organizationPerAttendee:
+            return lesson.billedRate ?? lesson.group.organizationAttendanceRate
+        }
+    }
+
+    private var rateLabel: String {
+        let prefix = lesson.status == .planned ? "Future" : "Recorded"
+        switch lesson.group.revenueModel {
+        case .perStudent: return "\(prefix) rate per student"
+        case .fixedPerLesson: return "\(prefix) rate per lesson"
+        case .organizationPerAttendee: return "\(prefix) rate per present student"
+        }
+    }
+
     var body: some View {
 
         Form {
@@ -41,6 +61,17 @@ struct LessonDetailView: View {
                 symbol: "calendar.badge.clock",
                 color: TeachTrackDesign.sky
             )
+
+            Section("Actions") {
+                if lesson.status != .cancelled {
+                    Button("Cancel Lesson", role: .destructive) {
+                        showCancelConfirmation = true
+                    }
+                }
+                Button("Delete Lesson", role: .destructive) {
+                    showDeleteConfirmation = true
+                }
+            }
 
             Section("Lesson") {
 
@@ -66,7 +97,7 @@ struct LessonDetailView: View {
                 .foregroundStyle(.secondary)
             }
 
-            if !lesson.group.isPrivate || lesson.group.revenueModel == .perStudent {
+            if lesson.group.revenueModel != .fixedPerLesson {
                 NavigationLink {
                     LessonAttendanceView(lesson: lesson)
                 } label: {
@@ -88,13 +119,17 @@ struct LessonDetailView: View {
             }
 
             Section("Billing") {
-                LabeledContent("Lesson Charges", value: lessonCharge.formatted())
+                LabeledContent(rateLabel, value: lessonRate?.moneyFormatted ?? "Not set")
+                LabeledContent("Lesson Charges", value: lessonCharge.moneyFormatted)
                 if lesson.status == .planned {
-                    Text("Mark every student's attendance, then set the lesson to completed or cancelled.")
+                    Text(lesson.group.revenueModel == .fixedPerLesson
+                         ? "Set the lesson to completed or cancelled to update the organization charge."
+                         : "Mark every student's attendance, then set the lesson to completed or cancelled.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
+
         }
         .teachTrackScreen()
         .navigationTitle("Lesson")
@@ -109,34 +144,6 @@ struct LessonDetailView: View {
                 }
             }
 
-            ToolbarItem(
-                placement: .bottomBar
-            ) {
-
-                HStack {
-
-                    if lesson.status != .cancelled {
-
-                        Button(
-                            "Cancel Lesson",
-                            role: .destructive
-                        ) {
-
-                            showCancelConfirmation = true
-                        }
-                    }
-
-                    Spacer()
-
-                    Button(
-                        "Delete Lesson",
-                        role: .destructive
-                    ) {
-
-                        showDeleteConfirmation = true
-                    }
-                }
-            }
         }
 
         .sheet(
@@ -199,8 +206,7 @@ struct LessonDetailView: View {
 
                 Text(
                     "This lesson was generated from the schedule. " +
-                    "If you generate lessons for this period again, " +
-                    "this lesson may be created again."
+                    "Deleting it creates an exception so it will not return when the calendar regenerates."
                 )
 
             } else {

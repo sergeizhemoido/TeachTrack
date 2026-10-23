@@ -30,6 +30,8 @@ struct StudentListView: View {
     @State
     private var studentToDelete: Student?
 
+    @State private var archiveErrorMessage: String?
+
     var body: some View {
 
         List {
@@ -147,14 +149,11 @@ struct StudentListView: View {
                 role: .destructive
             ) {
 
-                student.isActive = false
-
                 do {
-                    try context.save()
+                    try StudentService(context: context).archiveStudent(student)
                 } catch {
-                    print(
-                        "Failed to archive student: \(error)"
-                    )
+                    context.rollback()
+                    archiveErrorMessage = error.localizedDescription
                 }
 
                 studentToDelete = nil
@@ -173,6 +172,14 @@ struct StudentListView: View {
             Text(
                 "Are you sure you want to delete \(student.firstName) \(student.lastName)?"
             )
+        }
+        .alert("Unable to Delete Student", isPresented: Binding(
+            get: { archiveErrorMessage != nil },
+            set: { if !$0 { archiveErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { archiveErrorMessage = nil }
+        } message: {
+            Text(archiveErrorMessage ?? "")
         }
     }
 }

@@ -47,6 +47,12 @@ final class StudentService {
 
         student.isActive = false
 
+        let archivedAt = Date.now
+        for enrollment in student.enrollments where enrollment.isActive {
+            enrollment.isActive = false
+            enrollment.endDate = archivedAt
+        }
+
         try context.save()
     }
 

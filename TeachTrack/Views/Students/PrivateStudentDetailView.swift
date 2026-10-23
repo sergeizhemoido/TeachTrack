@@ -62,7 +62,7 @@ struct PrivateStudentDetailView: View {
                     HStack {
                         Text("Lesson Rate")
                         Spacer()
-                        Text(rate.formatted())
+                        Text(rate.moneyFormatted)
                     }
                 }
 

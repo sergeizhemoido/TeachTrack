@@ -53,14 +53,14 @@ struct AccountStatementView: View {
                 HStack(spacing: 12) {
                     TeachTrackMetric(
                         title: "Unpaid",
-                        value: summary.debt.formatted(),
+                        value: summary.debt.moneyFormatted,
                         symbol: "exclamationmark.circle.fill",
                         color: TeachTrackDesign.warning,
                         valueID: "accountUnpaid"
                     )
                     TeachTrackMetric(
                         title: "Deposit",
-                        value: summary.depositBalance.formatted(),
+                        value: summary.depositBalance.moneyFormatted,
                         symbol: "plus.circle.fill",
                         color: TeachTrackDesign.positive,
                         valueID: "accountDeposit"
@@ -84,7 +84,7 @@ struct AccountStatementView: View {
                                 Text("Charge")
                             }
                             Spacer()
-                            Text(charge.unpaid.formatted())
+                            Text(charge.unpaid.moneyFormatted)
                                 .foregroundStyle(.red)
                         }
                     }
@@ -111,7 +111,7 @@ struct AccountStatementView: View {
                         HStack {
                             Text(transaction.type.rawValue.capitalized)
                             Spacer()
-                            Text(transaction.amount.formatted())
+                            Text(transaction.amount.moneyFormatted)
                         }
                         Text(transaction.date, format: .dateTime)
                             .font(.caption)

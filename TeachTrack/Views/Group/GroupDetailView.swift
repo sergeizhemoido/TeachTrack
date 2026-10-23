@@ -36,6 +36,8 @@ struct GroupDetailView: View {
     @State
     private var lessonDeletionErrorMessage: String?
 
+    @State private var archiveErrorMessage: String?
+
     @Query
     private var enrollments: [Enrollment]
 
@@ -52,7 +54,7 @@ struct GroupDetailView: View {
         enrollments
             .filter {
                 $0.group.uuid == group.uuid &&
-                $0.isActive
+                $0.isActive && $0.student.isActive
             }
             .sorted {
 
@@ -117,7 +119,7 @@ struct GroupDetailView: View {
 
                         Spacer()
 
-                        Text(rate.formatted())
+                        Text(rate.moneyFormatted)
                     }
                 }
 
@@ -129,7 +131,7 @@ struct GroupDetailView: View {
 
                         Spacer()
 
-                        Text(rate.formatted())
+                        Text(rate.moneyFormatted)
                     }
                 }
 
@@ -137,14 +139,14 @@ struct GroupDetailView: View {
                     HStack {
                         Text("Rate Per Present Student")
                         Spacer()
-                        Text(rate.formatted())
+                        Text(rate.moneyFormatted)
                     }
                 }
             }
 
             // MARK: Students
 
-            if !group.isPrivate {
+            if !group.isPrivate && group.revenueModel != .fixedPerLesson {
             Section("Students") {
 
                 if activeEnrollments.isEmpty {
@@ -176,7 +178,7 @@ struct GroupDetailView: View {
                                 )
 
                             //    Text(
-                            //        enrollment.lessonPrice.formatted()
+                            //        enrollment.lessonPrice.moneyFormatted
                             //    )
                             //    .font(.caption)
                             //    .foregroundStyle(.secondary)
@@ -294,7 +296,7 @@ struct GroupDetailView: View {
 
                 Menu {
 
-                    if !group.isPrivate {
+                    if !group.isPrivate && group.revenueModel != .fixedPerLesson {
                         Button {
                             showAddStudent = true
                         } label: {
@@ -356,7 +358,7 @@ struct GroupDetailView: View {
         .sheet(
             isPresented: $showAddStudent
         ) {
-            if !group.isPrivate {
+            if !group.isPrivate && group.revenueModel != .fixedPerLesson {
                 AddEnrollmentView(group: group)
             }
         }
@@ -480,19 +482,12 @@ struct GroupDetailView: View {
                 role: .destructive
             ) {
 
-                group.isActive = false
-
-                // Close active enrollments but preserve history.
-                for enrollment in group.enrollments {
-
-                    if enrollment.isActive {
-
-                        enrollment.isActive = false
-                        enrollment.endDate = .now
-                    }
+                do {
+                    try GroupService(context: context).archiveGroup(group)
+                } catch {
+                    context.rollback()
+                    archiveErrorMessage = error.localizedDescription
                 }
-
-                try? context.save()
             }
 
             Button(
@@ -517,6 +512,14 @@ struct GroupDetailView: View {
             Button("OK", role: .cancel) { lessonDeletionErrorMessage = nil }
         } message: {
             Text(lessonDeletionErrorMessage ?? "")
+        }
+        .alert("Unable to Delete Group", isPresented: Binding(
+            get: { archiveErrorMessage != nil },
+            set: { if !$0 { archiveErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { archiveErrorMessage = nil }
+        } message: {
+            Text(archiveErrorMessage ?? "")
         }
     }
 }

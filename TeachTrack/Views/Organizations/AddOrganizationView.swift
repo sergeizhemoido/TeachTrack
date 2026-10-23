@@ -9,8 +9,6 @@ import SwiftData
 
 struct AddOrganizationView: View {
 
-    let onSave: () -> Void
-
     @Environment(\.dismiss)
     private var dismiss
 
@@ -107,7 +105,6 @@ struct AddOrganizationView: View {
 
         do {
             try context.save()
-            onSave()
             dismiss()
         } catch {
             context.rollback()

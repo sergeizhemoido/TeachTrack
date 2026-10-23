@@ -12,8 +12,11 @@ struct OrganizationsListView: View {
     @Environment(\.modelContext)
     private var context
 
-    @State
-    private var organizations: [Organization] = []
+    @Query private var allGroups: [Group]
+
+    @Query(sort: \Organization.name) private var organizations: [Organization]
+
+    @State private var archiveErrorMessage: String?
 
     private var activeOrganizations: [Organization] {
         organizations.filter(\.isActive)
@@ -82,9 +85,6 @@ struct OrganizationsListView: View {
                 "Organizations"
             )
             .navigationBarTitleDisplayMode(.inline)
-            .task {
-                loadOrganizations()
-            }
 
             .toolbar {
 
@@ -105,9 +105,7 @@ struct OrganizationsListView: View {
                     $showAddOrganization
             ) {
 
-                AddOrganizationView(
-                    onSave: loadOrganizations
-                )
+                AddOrganizationView()
             }
             
             .confirmationDialog(
@@ -128,8 +126,22 @@ struct OrganizationsListView: View {
                     "Delete",
                     role: .destructive
                 ) {
-                    organization.isActive = false
-                    try? context.save()
+                    do {
+                        for group in allGroups where group.organization?.uuid == organization.uuid && group.isActive {
+                            let privateStudent = organization.type == .privateClient
+                                ? group.enrollments.first(where: { $0.isActive })?.student
+                                : nil
+                            try GroupService(context: context).archiveGroup(group)
+                            if let privateStudent {
+                                try StudentService(context: context).archiveStudent(privateStudent)
+                            }
+                        }
+                        organization.isActive = false
+                        try context.save()
+                    } catch {
+                        context.rollback()
+                        archiveErrorMessage = error.localizedDescription
+                    }
                     organizationToDelete = nil
                     }
                     Button(
@@ -143,19 +155,16 @@ struct OrganizationsListView: View {
                                 "Are you sure you want to delete \(organization.name)?"
                             )
                         }
+            .alert("Unable to Delete Organization", isPresented: Binding(
+                get: { archiveErrorMessage != nil },
+                set: { if !$0 { archiveErrorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { archiveErrorMessage = nil }
+            } message: {
+                Text(archiveErrorMessage ?? "")
+            }
  
         }
     }
 
-    private func loadOrganizations() {
-        let descriptor = FetchDescriptor<Organization>(
-            sortBy: [SortDescriptor(\Organization.name)]
-        )
-
-        do {
-            organizations = try context.fetch(descriptor)
-        } catch {
-            organizations = []
-        }
-    }
 }

@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var requestedLocation: DatabaseLocation?
     @State private var showClearConfirmation = false
     @State private var showReplaceCloudConfirmation = false
+    @State private var showBackupTools = false
     @State private var errorMessage: String?
 
     var body: some View {
@@ -26,7 +27,14 @@ struct SettingsView: View {
             )
 
             Section("About") {
-                LabeledContent("Version", value: "1.01")
+                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")
+                    .contentShape(Rectangle())
+                    .onLongPressGesture(minimumDuration: 1.5) {
+                        showBackupTools = true
+                    }
+                    .accessibilityAction(named: "Open Database Backup") {
+                        showBackupTools = true
+                    }
             }
 
             Section("Database Storage") {
@@ -92,6 +100,10 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { selectedLocation = storage.location }
         .onReceive(storage.$location) { selectedLocation = $0 }
+        .sheet(isPresented: $showBackupTools) {
+            BackupToolsView()
+                .environmentObject(storage)
+        }
         .confirmationDialog(
             requestedLocation == .cloud ? "Copy Database to iCloud?" : "Move Database to This iPhone?",
             isPresented: Binding(

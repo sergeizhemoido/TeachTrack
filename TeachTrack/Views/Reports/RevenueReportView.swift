@@ -51,14 +51,14 @@ struct RevenueReportView: View {
                 Spacer()
 
                 Text(
-                    earnedRevenue.formatted()
+                    earnedRevenue.moneyFormatted
                 )
             }
 
             HStack {
                 Text("Payments and Deposits Received")
                 Spacer()
-                Text(received.formatted())
+                Text(received.moneyFormatted)
             }
         }
         .teachTrackScreen()

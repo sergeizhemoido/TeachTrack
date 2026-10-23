@@ -35,8 +35,6 @@ enum LessonBillingService {
         var desired: [UUID: (student: Student?, organization: Organization?, amount: Decimal)] = [:]
 
         if lesson.status == .completed {
-            try validateAttendance(for: lesson, context: context)
-
             switch lesson.group.revenueModel {
             case .fixedPerLesson:
                 guard let rate = lesson.billedRate ?? lesson.group.fixedLessonRate else {
@@ -49,6 +47,7 @@ enum LessonBillingService {
                 desired[organization.uuid] = (nil, organization, rate)
 
             case .organizationPerAttendee:
+                try validateAttendance(for: lesson, context: context)
                 guard let rate = lesson.billedRate ?? lesson.group.organizationAttendanceRate else {
                     throw BillingError.missingRate
                 }
@@ -72,6 +71,10 @@ enum LessonBillingService {
                 )
 
             case .perStudent:
+                try validateAttendance(for: lesson, context: context)
+                if lesson.billedRate == nil, let rate = lesson.group.ratePerStudent {
+                    lesson.billedRate = rate
+                }
                 let enrollments = try context.fetch(FetchDescriptor<Enrollment>())
                     .filter { $0.group.uuid == lesson.group.uuid }
                 for attendance in lesson.attendances where attendance.status.createsCharge {
@@ -79,9 +82,10 @@ enum LessonBillingService {
                         $0.student.uuid == attendance.student.uuid &&
                         $0.enrollmentDate <= lesson.endDate &&
                         ($0.endDate == nil || $0.endDate! >= lesson.startDate)
-                    }), let rate = enrollment.lessonPrice ?? lesson.group.ratePerStudent else {
+                    }), let rate = lesson.billedRate ?? lesson.group.ratePerStudent ?? enrollment.lessonPrice else {
                         throw BillingError.missingRate
                     }
+                    if lesson.billedRate == nil { lesson.billedRate = rate }
                     desired[attendance.student.uuid] = (attendance.student, nil, rate)
                 }
             }

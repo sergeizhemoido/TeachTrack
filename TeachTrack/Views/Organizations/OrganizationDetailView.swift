@@ -203,18 +203,11 @@ struct OrganizationDetailView: View {
             ? privateStudent(for: group)
             : nil
 
-        group.isActive = false
-
-        for enrollment in group.enrollments where enrollment.isActive {
-            enrollment.isActive = false
-            enrollment.endDate = .now
-        }
-
-        if let student = associatedPrivateStudent {
-            student.isActive = false
-        }
-
         do {
+            try GroupService(context: context).archiveGroup(group)
+            if let student = associatedPrivateStudent {
+                try StudentService(context: context).archiveStudent(student)
+            }
             try context.save()
         } catch {
             context.rollback()

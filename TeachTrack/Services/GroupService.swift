@@ -32,4 +32,30 @@ final class GroupService {
 
         try context.save()
     }
+
+    func archiveGroup(_ group: Group) throws {
+        let archivedAt = Date.now
+        let transactions = try context.fetch(FetchDescriptor<Transaction>())
+        let lessons = try context.fetch(FetchDescriptor<Lesson>())
+
+        group.isActive = false
+        for enrollment in group.enrollments where enrollment.isActive {
+            enrollment.isActive = false
+            enrollment.endDate = archivedAt
+        }
+        for rule in group.scheduleRules where rule.isActive {
+            rule.isActive = false
+        }
+        for lesson in lessons where lesson.group.uuid == group.uuid &&
+            lesson.status == .planned && lesson.endDate >= archivedAt {
+            let hasTransactions = transactions.contains { $0.lesson?.uuid == lesson.uuid }
+            if lesson.attendances.isEmpty && !hasTransactions {
+                context.delete(lesson)
+            } else {
+                lesson.status = .cancelled
+                try LessonBillingService.syncCharge(for: lesson, context: context)
+            }
+        }
+        try context.save()
+    }
 }

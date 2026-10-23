@@ -20,13 +20,14 @@ final class StorageCoordinator: ObservableObject {
             switch self {
             case .unavailable: "The database is still opening. Try again shortly."
             case .cloudCopyExists:
-                "iCloud already contains a TeachTrack database. Confirm replacing that copy before continuing."
+                "iCloud already contains a Teacher's Organizer database. Confirm replacing that copy before continuing."
             }
         }
     }
 
     @Published private(set) var location: DatabaseLocation
     @Published private(set) var isWorking = false
+    @Published private(set) var isClearingDatabase = false
     @Published private(set) var status = ""
     @Published private(set) var generation = 0
 
@@ -188,9 +189,16 @@ final class StorageCoordinator: ObservableObject {
         guard !isWorking else { return }
         guard let context else { throw StorageError.unavailable }
         isWorking = true
+        isClearingDatabase = true
         status = "Deleting database…"
         uploadTask?.cancel()
-        defer { isWorking = false }
+        defer {
+            isWorking = false
+            isClearingDatabase = false
+        }
+
+        // Let SwiftUI remove views holding model objects before deleting them.
+        try await Task.sleep(for: .milliseconds(100))
 
         if location == .cloud {
             // Never remove the local copy if CloudKit cannot confirm deletion.
@@ -207,6 +215,121 @@ final class StorageCoordinator: ObservableObject {
         generation += 1
     }
 
+    /// Captures the same complete model graph used for CloudKit synchronization.
+    func exportBackup() throws -> DatabaseSnapshot {
+        guard !isWorking else { throw StorageError.unavailable }
+        return try saveAndCapture()
+    }
+
+    /// Replaces the local database only after the workbook was parsed and validated.
+    /// When cloud storage is active, the replacement is queued for upload.
+    func importBackup(_ snapshot: DatabaseSnapshot) async throws {
+        guard !isWorking else { throw StorageError.unavailable }
+        guard context != nil else { throw StorageError.unavailable }
+        try snapshot.validate()
+        isWorking = true
+        status = "Restoring database…"
+        uploadTask?.cancel()
+        defer {
+            isWorking = false
+            isClearingDatabase = false
+        }
+
+        if location == .cloud {
+            let remote = try await cloud.download()
+            guard remote?.revision == cloudRevision else {
+                throw CloudDatabaseStore.StorageError.conflict
+            }
+        }
+
+        isClearingDatabase = true
+        // Remove views that still hold references to models being replaced.
+        try await Task.sleep(for: .milliseconds(100))
+        try restore(snapshot)
+        generation += 1
+        if location == .cloud {
+            setPendingUpload(true)
+            scheduleUpload()
+            status = "Database restored; syncing to iCloud"
+        } else {
+            status = "Database restored from workbook"
+        }
+    }
+
+    /// Adds only rows from the New Students sheet. Re-importing the same workbook
+    /// skips students already created from those rows.
+    func importNewStudents(_ rows: [NumbersWorkbookBackup.NewStudent]) async throws -> Int {
+        guard !isWorking, let context else { throw StorageError.unavailable }
+        guard rows.allSatisfy({
+            !$0.student.firstName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !$0.student.lastName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }) else {
+            throw NumbersWorkbookBackup.BackupError.invalidValue("New Students")
+        }
+        isWorking = true
+        defer { isWorking = false }
+        if location == .cloud {
+            let remote = try await cloud.download()
+            guard remote?.revision == cloudRevision else {
+                throw CloudDatabaseStore.StorageError.conflict
+            }
+        }
+        let existing = Set(try context.fetch(FetchDescriptor<Student>()).map(\.uuid))
+        let additions = rows.filter { !existing.contains($0.student.id) }
+        guard !additions.isEmpty else {
+            status = "These students are already in the database"
+            return 0
+        }
+        let organizations = Dictionary(uniqueKeysWithValues:
+            try context.fetch(FetchDescriptor<Organization>()).map { ($0.uuid, $0) })
+        for row in additions where row.student.type == .privateClient {
+            guard let id = row.organizationID, let organization = organizations[id],
+                  organization.type == .privateClient,
+                  let rate = row.lessonRate, rate > 0,
+                  row.groupID != nil, row.enrollmentID != nil else {
+                throw NumbersWorkbookBackup.BackupError.invalidValue(
+                    "New Students: private organization or lesson rate has changed"
+                )
+            }
+        }
+        do {
+            for row in additions {
+                let source = row.student
+                let student = Student(firstName: source.firstName, lastName: source.lastName,
+                                      studentType: source.type)
+                student.uuid = source.id
+                student.phone = source.phone
+                student.email = source.email
+                student.notes = source.notes
+                context.insert(student)
+                if let organizationID = row.organizationID,
+                   let organization = organizations[organizationID],
+                   let rate = row.lessonRate,
+                   let groupID = row.groupID,
+                   let enrollmentID = row.enrollmentID {
+                    let group = Group(name: "\(source.firstName) \(source.lastName)",
+                                      revenueModel: .perStudent, organization: organization)
+                    group.uuid = groupID
+                    group.ratePerStudent = rate
+                    let enrollment = Enrollment(student: student, group: group, lessonPrice: rate)
+                    enrollment.uuid = enrollmentID
+                    context.insert(group)
+                    context.insert(enrollment)
+                }
+            }
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
+        if location == .cloud {
+            setPendingUpload(true)
+            scheduleUpload()
+        }
+        status = "Added \(additions.count) students"
+        return additions.count
+    }
+
     func checkCloudConnection() async throws {
         guard !isWorking else { return }
         isWorking = true
@@ -216,8 +339,8 @@ final class StorageCoordinator: ObservableObject {
         do {
             let remote = try await cloud.download()
             status = remote == nil
-                ? "iCloud is available; no TeachTrack database is stored there"
-                : "iCloud is available; a TeachTrack database is stored there"
+                ? "iCloud is available; no Teacher's Organizer database is stored there"
+                : "iCloud is available; a Teacher's Organizer database is stored there"
         } catch {
             status = "iCloud connection failed"
             throw error

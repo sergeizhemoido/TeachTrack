@@ -36,6 +36,13 @@ struct AddPrivateStudentView: View {
     @State
     private var lessonPrice = ""
 
+    private var validLessonPrice: Decimal? {
+        let normalized = lessonPrice.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        guard let price = Decimal(string: normalized), price > 0 else { return nil }
+        return price
+    }
+
     var body: some View {
 
         NavigationStack {
@@ -102,7 +109,7 @@ struct AddPrivateStudentView: View {
                             .trimmingCharacters(
                                 in: .whitespacesAndNewlines
                             )
-                            .isEmpty
+                            .isEmpty || validLessonPrice == nil
                         ||
                         lastName
                             .trimmingCharacters(
@@ -135,8 +142,7 @@ struct AddPrivateStudentView: View {
                 in: .whitespacesAndNewlines
             )
 
-        let price =
-            Decimal(string: lessonPrice) ?? 0
+        guard let price = validLessonPrice else { return }
 
         // Private students are always created
         // with the privateClient student type.

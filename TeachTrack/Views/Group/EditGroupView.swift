@@ -127,6 +127,12 @@ struct EditGroupView: View {
                         .keyboardType(.decimalPad)
                     }
                 }
+
+                Section {
+                    Text("The updated rate applies to future lessons. Completed lessons keep their recorded rate.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             .teachTrackScreen()

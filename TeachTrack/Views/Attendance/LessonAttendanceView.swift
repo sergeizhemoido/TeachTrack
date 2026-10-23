@@ -24,7 +24,8 @@ struct LessonAttendanceView: View {
             &&
 
             $0.enrollmentDate <= lesson.endDate &&
-            ($0.endDate == nil || $0.endDate! >= lesson.startDate)
+            ($0.endDate == nil || $0.endDate! >= lesson.startDate) &&
+            ($0.student.isActive || lesson.status != .planned)
         }
     }
 

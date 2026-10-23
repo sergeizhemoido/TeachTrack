@@ -53,22 +53,12 @@ struct MainTabView: View {
             }
 
             NavigationStack {
-                ReportsView()
+                MoreView()
             }
             .tabItem {
                 Label(
-                    "Reports",
-                    systemImage: "chart.bar"
-                )
-            }
-
-            NavigationStack {
-                SettingsView()
-            }
-            .tabItem {
-                Label(
-                    "Settings",
-                    systemImage: "gear"
+                    "More",
+                    systemImage: "ellipsis.circle"
                 )
             }
         }

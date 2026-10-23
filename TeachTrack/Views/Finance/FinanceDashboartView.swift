@@ -55,13 +55,13 @@ struct FinanceDashboardView: View {
                 HStack(spacing: 12) {
                     TeachTrackMetric(
                         title: "Received",
-                        value: totalPayments.formatted(),
+                        value: totalPayments.moneyFormatted,
                         symbol: "arrow.down.left.circle.fill",
                         color: TeachTrackDesign.positive
                     )
                     TeachTrackMetric(
                         title: "Charges",
-                        value: totalCharges.formatted(),
+                        value: totalCharges.moneyFormatted,
                         symbol: "doc.text.fill",
                         color: TeachTrackDesign.blue,
                         valueID: "financeTotalCharges"
@@ -72,7 +72,7 @@ struct FinanceDashboardView: View {
 
                 TeachTrackMetric(
                     title: "Unpaid",
-                    value: totalUnpaid.formatted(),
+                    value: totalUnpaid.moneyFormatted,
                     symbol: "exclamationmark.circle.fill",
                     color: TeachTrackDesign.warning
                 )
@@ -97,7 +97,7 @@ struct FinanceDashboardView: View {
                                 color: TeachTrackDesign.warning
                             )
                             Spacer()
-                            Text(debt.formatted())
+                            Text(debt.moneyFormatted)
                                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                                 .foregroundStyle(TeachTrackDesign.warning)
                         }
@@ -122,7 +122,7 @@ struct FinanceDashboardView: View {
                                 color: TeachTrackDesign.warning
                             )
                             Spacer()
-                            Text(debt.formatted())
+                            Text(debt.moneyFormatted)
                                 .font(.system(.subheadline, design: .rounded, weight: .bold))
                                 .foregroundStyle(TeachTrackDesign.warning)
                         }

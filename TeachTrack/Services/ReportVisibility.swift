@@ -24,7 +24,8 @@ enum ReportVisibility {
         range: ReportDateRange? = nil
     ) -> [Lesson] {
         records.filter { lesson in
-            lesson.startDate <= now &&
+            lesson.endDate <= now &&
+            lesson.status != .planned &&
             (range?.contains(lesson.startDate) ?? true) &&
             (includeArchived || activeGroup(lesson.group))
         }

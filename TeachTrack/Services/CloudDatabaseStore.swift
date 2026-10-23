@@ -25,7 +25,7 @@ struct CloudDatabaseStore {
         var errorDescription: String? {
             switch self {
             case .missingContainer:
-                "No CloudKit container is configured for TeachTrack in Xcode."
+                "No CloudKit container is configured for Teacher's Organizer in Xcode."
             case .noAccount:
                 "Sign in to iCloud on this device before choosing cloud storage."
             case .incompleteRecord:
